@@ -231,9 +231,9 @@ select {
   font-size: 15px;
   line-height: 1.2;
 }
-#timeline {
+#ganttChart {
   width: 100%;
-  height: 260px;
+  min-height: 260px;
   display: block;
 }
 #bucketChart {
@@ -372,14 +372,14 @@ th { color: var(--muted); font-weight: 650; }
   <section class="detailHeader">
     <h2>Details</h2>
     <nav class="tabs" id="viewTabs" aria-label="Detail views">
-      <button type="button" data-view="timeline" class="active">Timeline</button>
+      <button type="button" data-view="gantt" class="active">Gantt</button>
       <button type="button" data-view="projects">Projects</button>
       <button type="button" data-view="heatmap">Heatmap</button>
     </nav>
   </section>
-  <section class="panel view" data-view-panel="timeline">
-    <h2>Timeline</h2>
-    <svg id="timeline" role="img" aria-label="Human and AI activity timeline"></svg>
+  <section class="panel view" data-view-panel="gantt">
+    <h2>Daily Gantt</h2>
+    <svg id="ganttChart" role="img" aria-label="Daily Gantt with 6 hour lanes"></svg>
   </section>
   <section class="panel view" data-view-panel="projects" hidden>
     <h2>Projects And Threads</h2>
@@ -393,10 +393,14 @@ th { color: var(--muted); font-weight: 650; }
 <script>
 const token = "__AGENT_PULSE_TOKEN__";
 const params = token ? "?token=" + encodeURIComponent(token) : "";
-const MAX_TIMELINE_EVENTS = 700;
-const MAX_TIMELINE_SPANS = 350;
+const GANTT_LANES = [
+  {label: "00-06", start: 0, end: 6},
+  {label: "06-12", start: 6, end: 12},
+  {label: "12-18", start: 12, end: 18},
+  {label: "18-24", start: 18, end: 24},
+];
 let data = null;
-let filters = {provider: "all", project: "all", thread: "all", range: "all", grain: "day", view: "timeline"};
+let filters = {provider: "all", project: "all", thread: "all", range: "all", grain: "day", view: "gantt"};
 
 fetch("/api/activity" + params).then(r => {
   if (!r.ok) throw new Error("HTTP " + r.status);
@@ -505,7 +509,7 @@ function renderActiveDetail(view) {
   for (const panel of document.querySelectorAll("[data-view-panel]")) {
     panel.hidden = panel.dataset.viewPanel !== filters.view;
   }
-  if (filters.view === "timeline") renderTimeline(view.events, view.spans);
+  if (filters.view === "gantt") renderGantt(view.events, view.spans);
   if (filters.view === "projects") renderTable(view.events, view.spans);
   if (filters.view === "heatmap") renderHeatmap(view.events);
 }
@@ -609,37 +613,122 @@ function shouldLabelBucket(index, count) {
   return index % every === 0 || index === count - 1;
 }
 
-function renderTimeline(events, spans) {
-  const svg = document.getElementById("timeline");
+function renderGantt(events, spans) {
+  const svg = document.getElementById("ganttChart");
   svg.innerHTML = "";
   const width = svg.clientWidth || 1000;
-  const height = svg.clientHeight || 260;
-  const times = events.map(e => Date.parse(e.timestamp)).filter(Boolean);
-  if (!times.length) {
+  const days = activeGanttDays(events, spans);
+  if (!days.length) {
+    svg.setAttribute("height", 260);
+    svg.style.height = "260px";
     svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="currentColor">No activity</text>';
     return;
   }
-  const min = Math.min(...times);
-  const max = Math.max(...times, min + 60000);
-  const pad = 34;
-  const x = t => pad + (Date.parse(t) - min) / (max - min) * (width - pad * 2);
-  const yHuman = 82;
-  const yAI = 174;
-  const drawnEvents = sampleEvenly(events, MAX_TIMELINE_EVENTS);
-  const drawnSpans = sampleEvenly(spans, MAX_TIMELINE_SPANS);
-  line(svg, pad, yHuman, width - pad, yHuman, "#d7d2c8", 1);
-  line(svg, pad, yAI, width - pad, yAI, "#d7d2c8", 1);
-  labelSVG(svg, pad, yHuman - 18, "Human");
-  labelSVG(svg, pad, yAI - 18, "AI");
-  for (const span of drawnSpans) {
-    const x1 = x(span.started_at);
-    const x2 = x(span.ended_at);
-    line(svg, x1, yHuman, x2, yAI, "rgba(181,71,8,.28)", 2);
-    rect(svg, x1, yHuman + 14, Math.max(2, x2 - x1), 9, "rgba(181,71,8,.42)");
+  const padLeft = width < 520 ? 92 : 118;
+  const padRight = 14;
+  const laneHeight = 22;
+  const dayGap = 14;
+  const top = 18;
+  const bottom = 14;
+  const dayHeight = GANTT_LANES.length * laneHeight + dayGap;
+  const height = top + days.length * dayHeight + bottom;
+  const railStart = padLeft;
+  const railEnd = Math.max(railStart + 80, width - padRight);
+  svg.setAttribute("height", height);
+  svg.style.height = height + "px";
+  for (const [dayIndex, day] of days.entries()) {
+    const dayTop = top + dayIndex * dayHeight;
+    labelSVG(svg, 4, dayTop + 12, formatDay(day));
+    for (const [laneIndex, lane] of GANTT_LANES.entries()) {
+      const y = dayTop + laneIndex * laneHeight + 12;
+      labelSVG(svg, width < 520 ? 48 : 70, y + 4, lane.label);
+      line(svg, railStart, y, railEnd, y, "#d7d2c8", 1);
+    }
   }
-  for (const event of drawnEvents) {
-    circle(svg, x(event.timestamp), event.type === "human_submit" ? yHuman : yAI, 5, event.type === "human_submit" ? "var(--human)" : "var(--ai)");
+  for (const span of spans) {
+    drawSpanOnGantt(svg, span, days, railStart, railEnd, top, dayHeight, laneHeight);
   }
+  for (const event of events) {
+    drawEventOnGantt(svg, event, days, railStart, railEnd, top, dayHeight, laneHeight);
+  }
+}
+
+function activeGanttDays(events, spans) {
+  const keys = new Set();
+  for (const event of events) keys.add(dayKey(new Date(event.timestamp)));
+  for (const span of spans) {
+    const start = startOfDay(new Date(span.started_at));
+    const end = startOfDay(new Date(span.ended_at));
+    for (let day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
+      keys.add(dayKey(day));
+    }
+  }
+  return [...keys].sort().map(key => new Date(key + "T00:00:00"));
+}
+
+function drawEventOnGantt(svg, event, days, railStart, railEnd, top, dayHeight, laneHeight) {
+  const date = new Date(event.timestamp);
+  const dayIndex = findDayIndex(days, date);
+  if (dayIndex < 0) return;
+  const hour = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+  const laneIndex = Math.min(3, Math.max(0, Math.floor(hour / 6)));
+  const lane = GANTT_LANES[laneIndex];
+  const y = top + dayIndex * dayHeight + laneIndex * laneHeight + 12;
+  const x = laneX(hour, lane, railStart, railEnd);
+  const stroke = event.type === "human_submit" ? "var(--human)" : "var(--ai)";
+  const h = event.type === "human_submit" ? 7 : 5;
+  line(svg, x, y - h, x, y + h, stroke, event.type === "human_submit" ? 1.8 : 1.3);
+}
+
+function drawSpanOnGantt(svg, span, days, railStart, railEnd, top, dayHeight, laneHeight) {
+  const spanStart = new Date(span.started_at);
+  const spanEnd = new Date(span.ended_at);
+  if (!(spanEnd > spanStart)) return;
+  for (const [dayIndex, day] of days.entries()) {
+    for (const [laneIndex, lane] of GANTT_LANES.entries()) {
+      const segmentStart = addHours(day, lane.start);
+      const segmentEnd = addHours(day, lane.end);
+      const start = new Date(Math.max(spanStart.getTime(), segmentStart.getTime()));
+      const end = new Date(Math.min(spanEnd.getTime(), segmentEnd.getTime()));
+      if (!(end > start)) continue;
+      const startHour = start.getHours() + start.getMinutes() / 60 + start.getSeconds() / 3600;
+      const endHour = end.getHours() + end.getMinutes() / 60 + end.getSeconds() / 3600;
+      const y = top + dayIndex * dayHeight + laneIndex * laneHeight + 9;
+      const x1 = laneX(startHour, lane, railStart, railEnd);
+      const x2 = laneX(endHour, lane, railStart, railEnd);
+      rect(svg, x1, y, Math.max(2, x2 - x1), 6, "rgba(181,71,8,.68)");
+    }
+  }
+}
+
+function laneX(hour, lane, railStart, railEnd) {
+  const ratio = (hour - lane.start) / (lane.end - lane.start);
+  return railStart + Math.max(0, Math.min(1, ratio)) * (railEnd - railStart);
+}
+
+function findDayIndex(days, date) {
+  const key = dayKey(date);
+  return days.findIndex(day => dayKey(day) === key);
+}
+
+function dayKey(date) {
+  return String(date.getFullYear()) + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+}
+
+function startOfDay(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addHours(date, hours) {
+  const d = new Date(date);
+  d.setHours(hours, 0, 0, 0);
+  return d;
+}
+
+function formatDay(date) {
+  return String(date.getMonth() + 1) + "/" + String(date.getDate());
 }
 
 function renderHeatmap(events) {
@@ -690,13 +779,6 @@ function renderTable(events, spans) {
 }
 
 function unique(values) { return [...new Set(values.filter(Boolean))].sort(); }
-function sampleEvenly(values, limit) {
-  if (values.length <= limit) return values;
-  const out = [];
-  const step = (values.length - 1) / (limit - 1);
-  for (let i = 0; i < limit; i++) out.push(values[Math.round(i * step)]);
-  return out;
-}
 function label(value) { return value === "all" ? "All" : value; }
 function titleCase(value) { return value.slice(0, 1).toUpperCase() + value.slice(1); }
 function shortID(value) { return value.length > 28 ? value.slice(0, 25) + "..." : value; }
@@ -726,11 +808,6 @@ function rect(svg, x, y, width, height, fill) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   el.setAttribute("x", x); el.setAttribute("y", y); el.setAttribute("width", width); el.setAttribute("height", height);
   el.setAttribute("rx", 3); el.setAttribute("fill", fill);
-  svg.appendChild(el);
-}
-function circle(svg, x, y, r, fill) {
-  const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  el.setAttribute("cx", x); el.setAttribute("cy", y); el.setAttribute("r", r); el.setAttribute("fill", fill);
   svg.appendChild(el);
 }
 function labelSVG(svg, x, y, text) {

@@ -58,3 +58,21 @@ func TestHandlerRequiresAuthTokenWhenConfigured(t *testing.T) {
 		t.Fatalf("expected 200 with token, got %d", rec.Code)
 	}
 }
+
+func TestDashboardIncludesSixHourGanttLanes(t *testing.T) {
+	handler := server.NewHandler(model.Timeline{}, server.Config{Host: "127.0.0.1", Port: 8765})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	for _, want := range []string{"Daily Gantt", "ganttChart", "00-06", "06-12", "12-18", "18-24"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("dashboard missing %q in %s", want, body)
+		}
+	}
+}
