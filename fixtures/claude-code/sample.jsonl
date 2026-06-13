@@ -1,0 +1,2 @@
+{"timestamp":"2026-06-13T10:00:00Z","type":"user","message":{"role":"user","content":"example prompt body"},"session_id":"claude-demo","cwd":"/tmp/example-repo"}
+{"timestamp":"2026-06-13T10:02:30Z","type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"example answer body"}]},"session_id":"claude-demo","cwd":"/tmp/example-repo"}

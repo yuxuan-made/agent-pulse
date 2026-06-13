@@ -1,0 +1,2 @@
+{"timestamp":"2026-06-13T09:00:00Z","type":"event_msg","payload":{"type":"user_message","message":"example prompt body","session_id":"codex-demo","cwd":"/tmp/example-repo"}}
+{"timestamp":"2026-06-13T09:01:12Z","type":"response_item","item":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"example answer body"}]},"session_id":"codex-demo","cwd":"/tmp/example-repo"}

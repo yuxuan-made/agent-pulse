@@ -1,0 +1,2 @@
+{"time":"2026-06-13T11:00:00Z","role":"user","content":"example prompt body","sessionID":"opencode-demo","project":"/tmp/example-repo"}
+{"time":"2026-06-13T11:03:05Z","role":"assistant","content":"example answer body","sessionID":"opencode-demo","project":"/tmp/example-repo"}
