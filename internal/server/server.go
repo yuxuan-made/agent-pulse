@@ -186,6 +186,34 @@ h1 {
   gap: 8px;
   margin: 14px 0;
 }
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 14px;
+}
+.segmented, .tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.segmented button, .tabs button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.segmented button.active, .tabs button.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--panel);
+}
 select {
   min-width: 150px;
   border: 1px solid var(--line);
@@ -207,6 +235,25 @@ select {
   width: 100%;
   height: 260px;
   display: block;
+}
+#bucketChart {
+  width: 100%;
+  height: 230px;
+  display: block;
+}
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 10px;
+}
+.detailHeader h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.view[hidden] {
+  display: none;
 }
 .legend {
   display: flex;
@@ -268,6 +315,7 @@ th { color: var(--muted); font-weight: 650; }
   main { padding: 14px; }
   header { align-items: start; flex-direction: column; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar, .detailHeader { align-items: start; flex-direction: column; }
   .two { grid-template-columns: 1fr; }
   th, td { white-space: normal; overflow-wrap: anywhere; }
   .heatmap { grid-template-columns: 32px repeat(24, minmax(4px, 1fr)); }
@@ -304,19 +352,42 @@ th { color: var(--muted); font-weight: 650; }
     <select id="projectFilter"></select>
     <select id="threadFilter"></select>
   </section>
+  <section class="toolbar">
+    <div class="segmented" id="rangeControls" aria-label="Time range">
+      <button type="button" data-range="all" class="active">All</button>
+      <button type="button" data-range="7d">7D</button>
+      <button type="button" data-range="24h">24H</button>
+      <button type="button" data-range="1h">1H</button>
+    </div>
+    <div class="segmented" id="grainControls" aria-label="Time grain">
+      <button type="button" data-grain="week">Week</button>
+      <button type="button" data-grain="day" class="active">Day</button>
+      <button type="button" data-grain="hour">Hour</button>
+    </div>
+  </section>
   <section class="panel">
+    <h2 id="bucketTitle">Activity By Day</h2>
+    <svg id="bucketChart" role="img" aria-label="Activity by selected time grain"></svg>
+  </section>
+  <section class="detailHeader">
+    <h2>Details</h2>
+    <nav class="tabs" id="viewTabs" aria-label="Detail views">
+      <button type="button" data-view="timeline" class="active">Timeline</button>
+      <button type="button" data-view="projects">Projects</button>
+      <button type="button" data-view="heatmap">Heatmap</button>
+    </nav>
+  </section>
+  <section class="panel view" data-view-panel="timeline">
     <h2>Timeline</h2>
     <svg id="timeline" role="img" aria-label="Human and AI activity timeline"></svg>
   </section>
-  <section class="two">
-    <div class="panel">
-      <h2>Weekday Hour</h2>
-      <div id="heatmap" class="heatmap"></div>
-    </div>
-    <div class="panel">
-      <h2>Projects And Threads</h2>
-      <div id="table"></div>
-    </div>
+  <section class="panel view" data-view-panel="projects" hidden>
+    <h2>Projects And Threads</h2>
+    <div id="table"></div>
+  </section>
+  <section class="panel view" data-view-panel="heatmap" hidden>
+    <h2>Weekday Hour</h2>
+    <div id="heatmap" class="heatmap"></div>
   </section>
 </main>
 <script>
@@ -325,20 +396,20 @@ const params = token ? "?token=" + encodeURIComponent(token) : "";
 const MAX_TIMELINE_EVENTS = 700;
 const MAX_TIMELINE_SPANS = 350;
 let data = null;
-let filters = {provider: "all", project: "all", thread: "all"};
+let filters = {provider: "all", project: "all", thread: "all", range: "all", grain: "day", view: "timeline"};
 
 fetch("/api/activity" + params).then(r => {
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
 }).then(json => {
   data = json;
-  initFilters();
+  initControls();
   render();
 }).catch(err => {
   document.querySelector("main").innerHTML = '<div class="panel empty">' + err.message + '</div>';
 });
 
-function initFilters() {
+function initControls() {
   fillSelect("providerFilter", ["all", ...unique(data.events.map(e => e.provider))]);
   fillSelect("projectFilter", ["all", ...unique(data.events.map(e => e.project_id))]);
   fillSelect("threadFilter", ["all", ...unique(data.events.map(e => e.thread_id))]);
@@ -349,6 +420,27 @@ function initFilters() {
       render();
     });
   }
+  for (const button of document.querySelectorAll("[data-range]")) {
+    button.addEventListener("click", () => {
+      filters.range = button.dataset.range;
+      setActive("[data-range]", button);
+      render();
+    });
+  }
+  for (const button of document.querySelectorAll("[data-grain]")) {
+    button.addEventListener("click", () => {
+      filters.grain = button.dataset.grain;
+      setActive("[data-grain]", button);
+      render();
+    });
+  }
+  for (const button of document.querySelectorAll("[data-view]")) {
+    button.addEventListener("click", () => {
+      filters.view = button.dataset.view;
+      setActive("[data-view]", button);
+      render();
+    });
+  }
 }
 
 function fillSelect(id, values) {
@@ -356,32 +448,66 @@ function fillSelect(id, values) {
   node.innerHTML = values.map(value => '<option value="' + escapeHTML(value) + '">' + escapeHTML(label(value)) + '</option>').join("");
 }
 
-function render() {
-  const events = filteredEvents();
-  const turns = filteredTurns(events);
-  const spans = filteredSpans(events);
-  renderMetrics(events, turns, spans);
-  renderTimeline(events, spans);
-  renderHeatmap(events);
-  renderTable(events, spans);
+function setActive(selector, activeButton) {
+  for (const button of document.querySelectorAll(selector)) {
+    button.classList.toggle("active", button === activeButton);
+  }
 }
 
-function filteredEvents() {
-  return data.events.filter(e =>
+function render() {
+  const view = filteredData();
+  renderMetrics(view.events, view.turns, view.spans);
+  renderBucketChart(view.events, filters.grain);
+  renderActiveDetail(view);
+}
+
+function filteredData() {
+  const baseEvents = data.events.filter(e =>
     (filters.provider === "all" || e.provider === filters.provider) &&
     (filters.project === "all" || e.project_id === filters.project) &&
     (filters.thread === "all" || e.thread_id === filters.thread)
   );
+  const window = timeWindow(baseEvents, filters.range);
+  const events = baseEvents.filter(e => inWindow(Date.parse(e.timestamp), window));
+  const ids = new Set(events.map(e => e.thread_id));
+  const turns = (data.turns || []).filter(t => ids.has(t.thread_id) && inWindow(Date.parse(t.human_submit_at || t.ai_done_at), window));
+  const spans = (data.spans || []).filter(s => ids.has(s.thread_id) && overlapsWindow(Date.parse(s.started_at), Date.parse(s.ended_at), window));
+  return {events, turns, spans, window};
 }
 
-function filteredTurns(events) {
-  const ids = new Set(events.map(e => e.thread_id));
-  return (data.turns || []).filter(t => ids.has(t.thread_id));
+function timeWindow(events, range) {
+  const times = events.map(e => Date.parse(e.timestamp)).filter(Boolean);
+  if (!times.length) return {start: 0, end: 0};
+  const end = Math.max(...times);
+  const min = Math.min(...times);
+  const duration = rangeDuration(range);
+  return {start: duration ? Math.max(min, end - duration) : min, end};
 }
 
-function filteredSpans(events) {
-  const ids = new Set(events.map(e => e.thread_id));
-  return (data.spans || []).filter(s => ids.has(s.thread_id));
+function rangeDuration(range) {
+  if (range === "7d") return 7 * 24 * 60 * 60 * 1000;
+  if (range === "24h") return 24 * 60 * 60 * 1000;
+  if (range === "1h") return 60 * 60 * 1000;
+  return 0;
+}
+
+function inWindow(time, window) {
+  if (!time || !window.end) return false;
+  return time >= window.start && time <= window.end;
+}
+
+function overlapsWindow(start, end, window) {
+  if (!start || !end || !window.end) return false;
+  return end >= window.start && start <= window.end;
+}
+
+function renderActiveDetail(view) {
+  for (const panel of document.querySelectorAll("[data-view-panel]")) {
+    panel.hidden = panel.dataset.viewPanel !== filters.view;
+  }
+  if (filters.view === "timeline") renderTimeline(view.events, view.spans);
+  if (filters.view === "projects") renderTable(view.events, view.spans);
+  if (filters.view === "heatmap") renderHeatmap(view.events);
 }
 
 function renderMetrics(events, turns, spans) {
@@ -401,6 +527,86 @@ function renderMetrics(events, turns, spans) {
   document.getElementById("metrics").innerHTML = metrics.map(([label, value]) =>
     '<div class="metric"><div class="label">' + label + '</div><div class="value">' + value + '</div></div>'
   ).join("");
+}
+
+function renderBucketChart(events, grain) {
+  const svg = document.getElementById("bucketChart");
+  const title = document.getElementById("bucketTitle");
+  svg.innerHTML = "";
+  title.textContent = "Activity By " + titleCase(grain);
+  const width = svg.clientWidth || 1000;
+  const height = svg.clientHeight || 230;
+  if (!events.length) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="currentColor">No activity</text>';
+    return;
+  }
+  const buckets = bucketEvents(events, grain);
+  const max = Math.max(1, ...buckets.map(b => Math.max(b.human, b.ai)));
+  const padLeft = 42;
+  const padRight = 16;
+  const padTop = 18;
+  const padBottom = 34;
+  const innerW = width - padLeft - padRight;
+  const innerH = height - padTop - padBottom;
+  line(svg, padLeft, padTop + innerH, width - padRight, padTop + innerH, "#d7d2c8", 1);
+  const gap = 5;
+  const slot = innerW / buckets.length;
+  const barW = Math.max(3, Math.min(15, (slot - gap) / 2));
+  buckets.forEach((bucket, index) => {
+    const x0 = padLeft + index * slot + Math.max(1, (slot - barW * 2) / 2);
+    const humanH = bucket.human / max * innerH;
+    const aiH = bucket.ai / max * innerH;
+    rect(svg, x0, padTop + innerH - humanH, barW, humanH, "var(--human)");
+    rect(svg, x0 + barW + 2, padTop + innerH - aiH, barW, aiH, "var(--ai)");
+    if (shouldLabelBucket(index, buckets.length)) {
+      labelSVG(svg, x0, height - 12, bucket.label);
+    }
+  });
+  labelSVG(svg, 6, padTop + 10, String(max));
+  labelSVG(svg, 6, padTop + innerH, "0");
+}
+
+function bucketEvents(events, grain) {
+  const buckets = new Map();
+  for (const event of events) {
+    const date = new Date(event.timestamp);
+    const bucket = bucketStart(date, grain);
+    const key = bucket.getTime();
+    if (!buckets.has(key)) buckets.set(key, {time: key, label: bucketLabel(bucket, grain), human: 0, ai: 0});
+    const row = buckets.get(key);
+    if (event.type === "human_submit") row.human++;
+    if (event.type === "ai_done") row.ai++;
+  }
+  return [...buckets.values()].sort((a, b) => a.time - b.time);
+}
+
+function bucketStart(date, grain) {
+  const d = new Date(date);
+  d.setSeconds(0, 0);
+  if (grain === "hour") {
+    d.setMinutes(0);
+    return d;
+  }
+  d.setHours(0, 0, 0, 0);
+  if (grain === "week") {
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+  }
+  return d;
+}
+
+function bucketLabel(date, grain) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  if (grain === "hour") return String(date.getHours()).padStart(2, "0") + ":00";
+  if (grain === "week") return month + "/" + day;
+  return month + "/" + day;
+}
+
+function shouldLabelBucket(index, count) {
+  if (count <= 8) return true;
+  const every = Math.ceil(count / 6);
+  return index % every === 0 || index === count - 1;
 }
 
 function renderTimeline(events, spans) {
@@ -492,6 +698,7 @@ function sampleEvenly(values, limit) {
   return out;
 }
 function label(value) { return value === "all" ? "All" : value; }
+function titleCase(value) { return value.slice(0, 1).toUpperCase() + value.slice(1); }
 function shortID(value) { return value.length > 28 ? value.slice(0, 25) + "..." : value; }
 function percentile(values, p) {
   if (!values.length) return 0;
