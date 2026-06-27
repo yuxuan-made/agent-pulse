@@ -3,6 +3,7 @@ package server_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -59,7 +60,27 @@ func TestHandlerRequiresAuthTokenWhenConfigured(t *testing.T) {
 	}
 }
 
-func TestDashboardIncludesSixHourGanttLanes(t *testing.T) {
+func TestDashboardEscapesQueryTokenInsideScript(t *testing.T) {
+	token := `</script><script>alert("x")</script>`
+	handler := server.NewHandler(model.Timeline{}, server.Config{Host: "127.0.0.1", Port: 8765, AuthToken: token})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/?token="+url.QueryEscape(token), nil)
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if strings.Contains(body, `</script><script>`) {
+		t.Fatalf("dashboard rendered raw script-breaking token in %q", body)
+	}
+	if !strings.Contains(body, `\u003C/script\u003E`) {
+		t.Fatalf("expected escaped script token in %q", body)
+	}
+}
+
+func TestDashboardIncludesAnalysisWorkbenchControls(t *testing.T) {
 	handler := server.NewHandler(model.Timeline{}, server.Config{Host: "127.0.0.1", Port: 8765})
 
 	rec := httptest.NewRecorder()
@@ -70,9 +91,80 @@ func TestDashboardIncludesSixHourGanttLanes(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	body := rec.Body.String()
-	for _, want := range []string{"Daily Gantt", "ganttChart", "00-06", "06-12", "12-18", "18-24"} {
+	for _, want := range []string{
+		"Session map",
+		"Daily rhythm",
+		"Handovers",
+		"Median wait",
+		"Peak handoff",
+		"Language",
+		"中文",
+		"Date",
+		"Week",
+		"Month",
+		"Range",
+		`type="date"`,
+		`type="month"`,
+		`id="selectedDate"`,
+		`id="selectedWeekDate"`,
+		`id="selectedMonth"`,
+		`id="rangeStart"`,
+		`id="rangeEnd"`,
+		`data-mode="week"`,
+		`data-mode="month"`,
+		"Tokens",
+		"Coverage",
+		"Cache included",
+		"含缓存",
+		"1000000000000",
+		"All",
+		"Agent wait/work span",
+		"Agent 等待/工作区间",
+		"spanTitle",
+		"legendInline",
+		"preferredLanguage",
+		"agent-pulse-language",
+		"renderSessionMap",
+		"renderRhythmChart",
+		"analysisStack",
+		"sessionPanel",
+		"rhythmPanel",
+		"sharedChartBounds",
+		"const SESSION_ROW_HEIGHT = 56;",
+		"const SESSION_ROW_BG_FILL = \"rgba(100,113,129,.045)\";",
+		"const SESSION_AGENT_SPAN_Y = 23;",
+	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("dashboard missing %q in %s", want, body)
+		}
+	}
+	for _, stale := range []string{
+		"Yesterday",
+		"2D Ago",
+		`data-range="yesterday"`,
+		`data-range="2d"`,
+	} {
+		if strings.Contains(body, stale) {
+			t.Fatalf("dashboard still contains stale preset %q in %s", stale, body)
+		}
+	}
+	for _, stale := range []string{
+		"analysisGrid",
+		"minmax(0, 1.45fr) minmax(320px, .75fr)",
+		"const left = 34",
+		"i % 2 === 0 ?",
+		"Human review/edit window",
+		"人接手/编辑窗口",
+		"human_review_or_edit",
+		"SESSION_HUMAN_TICK",
+		"legendLine",
+		"legendPoint",
+		"SESSION_HUMAN_MARK_RADIUS",
+		"SESSION_AI_DONE_MARK_RADIUS",
+		"function circle(",
+	} {
+		if strings.Contains(body, stale) {
+			t.Fatalf("dashboard still contains old side-by-side layout %q in %s", stale, body)
 		}
 	}
 }

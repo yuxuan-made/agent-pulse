@@ -66,6 +66,34 @@ func TestBuildTimelinePairsHumanSubmitWithAIDoneWithoutText(t *testing.T) {
 	}
 }
 
+func TestBuildTimelineDoesNotInferHumanReviewSpanFromIdleGap(t *testing.T) {
+	start := time.Date(2026, 6, 13, 9, 30, 0, 0, time.UTC)
+	events := []model.Event{
+		{Type: model.EventHumanSubmit, Timestamp: start, Provider: "codex", ProjectID: "repo-a", ThreadID: "thread-a"},
+		{Type: model.EventAIDone, Timestamp: start.Add(1 * time.Minute), Provider: "codex", ProjectID: "repo-a", ThreadID: "thread-a"},
+		{Type: model.EventHumanSubmit, Timestamp: start.Add(6 * time.Minute), Provider: "codex", ProjectID: "repo-a", ThreadID: "thread-a"},
+		{Type: model.EventAIDone, Timestamp: start.Add(8 * time.Minute), Provider: "codex", ProjectID: "repo-a", ThreadID: "thread-a"},
+	}
+
+	result := model.BuildTimeline(events)
+
+	var aiSpans []model.Span
+	for _, span := range result.Spans {
+		if span.Type != model.SpanAIActive {
+			t.Fatalf("unexpected inferred non-agent span from idle gap: %#v", span)
+		}
+		if span.Type == model.SpanAIActive {
+			aiSpans = append(aiSpans, span)
+		}
+	}
+	if len(aiSpans) != 2 {
+		t.Fatalf("expected 2 ai spans, got %#v", result.Spans)
+	}
+	if result.Summary.MedianAIMS != int64((1 * time.Minute).Milliseconds()) {
+		t.Fatalf("expected median AI ms to ignore human spans, got %#v", result.Summary)
+	}
+}
+
 func TestBuildTimelineDeduplicatesRepeatedScanEvents(t *testing.T) {
 	when := time.Date(2026, 6, 13, 10, 0, 0, 0, time.UTC)
 	event := model.Event{
@@ -83,5 +111,33 @@ func TestBuildTimelineDeduplicatesRepeatedScanEvents(t *testing.T) {
 
 	if len(result.Events) != 1 {
 		t.Fatalf("expected duplicate events to collapse to 1, got %d", len(result.Events))
+	}
+}
+
+func TestBuildTimelineAggregatesTokenMetadataOncePerUsageID(t *testing.T) {
+	when := time.Date(2026, 6, 13, 10, 0, 0, 0, time.UTC)
+	event := model.Event{
+		Type:         model.EventAIDone,
+		Timestamp:    when,
+		Provider:     "claude-code",
+		ProjectID:    "repo-a",
+		ThreadID:     "thread-a",
+		SourcePath:   "fixture.jsonl",
+		SourceLine:   7,
+		TokenUsageID: "msg-1",
+		InputTokens:  100,
+		OutputTokens: 20,
+		TotalTokens:  120,
+	}
+	duplicateUsage := event
+	duplicateUsage.SourceLine = 8
+
+	result := model.BuildTimeline([]model.Event{event, duplicateUsage})
+
+	if result.Summary.Tokens.Records != 1 {
+		t.Fatalf("expected duplicate token usage id to count once, got %#v", result.Summary.Tokens)
+	}
+	if result.Summary.Tokens.TotalTokens != 120 {
+		t.Fatalf("expected 120 total tokens, got %#v", result.Summary.Tokens)
 	}
 }

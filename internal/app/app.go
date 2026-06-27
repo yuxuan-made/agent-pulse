@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -90,6 +91,11 @@ func runScan(opts Options, stdout io.Writer) error {
 	fmt.Fprintf(stdout, "Threads: %d\n", timeline.Summary.Threads)
 	fmt.Fprintf(stdout, "Median AI time: %s\n", formatDurationMS(timeline.Summary.MedianAIMS))
 	fmt.Fprintf(stdout, "P90 AI time: %s\n", formatDurationMS(timeline.Summary.P90AIMS))
+	if timeline.Summary.Tokens.Records > 0 {
+		fmt.Fprintf(stdout, "Token records: %d\n", timeline.Summary.Tokens.Records)
+		fmt.Fprintf(stdout, "Total tokens: %d\n", timeline.Summary.Tokens.TotalTokens)
+		fmt.Fprintf(stdout, "Cached tokens: %d\n", timeline.Summary.Tokens.CachedInputTokens)
+	}
 	if len(timeline.Warnings) > 0 {
 		fmt.Fprintf(stdout, "Warnings: %d\n", len(timeline.Warnings))
 	}
@@ -149,11 +155,39 @@ func runExport(opts Options, stdout io.Writer) error {
 		}
 	case "csv":
 		writer := csv.NewWriter(&out)
-		if err := writer.Write([]string{"timestamp", "type", "provider", "project_id", "thread_id", "char_count", "confidence"}); err != nil {
+		if err := writer.Write([]string{
+			"timestamp",
+			"type",
+			"provider",
+			"project_id",
+			"thread_id",
+			"char_count",
+			"confidence",
+			"token_usage_id",
+			"input_tokens",
+			"cached_input_tokens",
+			"output_tokens",
+			"reasoning_output_tokens",
+			"total_tokens",
+		}); err != nil {
 			return err
 		}
 		for _, event := range timeline.Events {
-			if err := writer.Write([]string{event.Timestamp.Format(time.RFC3339), string(event.Type), event.Provider, event.ProjectID, event.ThreadID, fmt.Sprint(event.CharCount), string(event.Confidence)}); err != nil {
+			if err := writer.Write([]string{
+				event.Timestamp.Format(time.RFC3339),
+				string(event.Type),
+				event.Provider,
+				event.ProjectID,
+				event.ThreadID,
+				fmt.Sprint(event.CharCount),
+				string(event.Confidence),
+				event.TokenUsageID,
+				fmt.Sprint(event.InputTokens),
+				fmt.Sprint(event.CachedInputTokens),
+				fmt.Sprint(event.OutputTokens),
+				fmt.Sprint(event.ReasoningOutputTokens),
+				fmt.Sprint(event.TotalTokens),
+			}); err != nil {
 				return err
 			}
 		}
@@ -183,11 +217,17 @@ func runServe(opts Options, cfg server.Config, stdout io.Writer) error {
 		return err
 	}
 	if cfg.AuthToken != "" {
-		url += "?token=" + cfg.AuthToken
+		url = dashboardURLWithToken(url, cfg.AuthToken)
 	}
 	fmt.Fprintf(stdout, "Agent Pulse dashboard: %s\n", url)
 	<-ctx.Done()
 	return nil
+}
+
+func dashboardURLWithToken(baseURL, token string) string {
+	values := url.Values{}
+	values.Set("token", token)
+	return baseURL + "?" + values.Encode()
 }
 
 func parseCommon(args []string, name string) (Options, error) {

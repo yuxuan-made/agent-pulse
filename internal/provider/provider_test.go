@@ -57,6 +57,25 @@ func TestCodexScannerUsesTurnContextProjectForFollowingEvents(t *testing.T) {
 	}
 }
 
+func TestCodexScannerReadsLastTokenUsageMetadata(t *testing.T) {
+	fixture := `{"timestamp":"2026-06-13T09:00:30Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":9999,"output_tokens":9999,"total_tokens":19998},"last_token_usage":{"input_tokens":1200,"cached_input_tokens":300,"output_tokens":80,"reasoning_output_tokens":20,"total_tokens":1300}}},"session_id":"codex-session","cwd":"/tmp/repo-a"}`
+
+	events, warnings := provider.ScanReader(provider.ProviderCodex, "codex.jsonl", strings.NewReader(fixture))
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %#v", warnings)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	event := events[0]
+	if event.Type != model.EventTokenCount {
+		t.Fatalf("expected token_count event, got %s", event.Type)
+	}
+	if event.InputTokens != 1200 || event.CachedInputTokens != 300 || event.OutputTokens != 80 || event.ReasoningOutputTokens != 20 || event.TotalTokens != 1300 {
+		t.Fatalf("unexpected token metadata: %#v", event)
+	}
+}
+
 func TestClaudeScannerReadsSubmitAndAIDoneWithoutText(t *testing.T) {
 	fixture := strings.Join([]string{
 		`{"timestamp":"2026-06-13T10:00:00Z","type":"user","message":{"role":"user","content":"PRIVATE CLAUDE PROMPT"},"session_id":"claude-session","cwd":"/tmp/repo-b"}`,
@@ -69,6 +88,29 @@ func TestClaudeScannerReadsSubmitAndAIDoneWithoutText(t *testing.T) {
 	}
 	assertEventTypes(t, events, model.EventHumanSubmit, model.EventAIDone)
 	assertNoTextLeak(t, events, "PRIVATE CLAUDE PROMPT", "PRIVATE CLAUDE ANSWER")
+}
+
+func TestClaudeScannerReadsAssistantUsageMetadataWithoutText(t *testing.T) {
+	fixture := `{"timestamp":"2026-06-13T10:01:05Z","type":"assistant","message":{"id":"msg-1","role":"assistant","content":[{"type":"text","text":"PRIVATE CLAUDE ANSWER"}],"usage":{"input_tokens":100,"cache_creation_input_tokens":7,"cache_read_input_tokens":11,"output_tokens":20}},"session_id":"claude-session","cwd":"/tmp/repo-b"}`
+
+	events, warnings := provider.ScanReader(provider.ProviderClaudeCode, "claude.jsonl", strings.NewReader(fixture))
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %#v", warnings)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	event := events[0]
+	if event.Type != model.EventAIDone {
+		t.Fatalf("expected ai_done event, got %s", event.Type)
+	}
+	if event.TokenUsageID != "msg-1" {
+		t.Fatalf("expected usage id from message id, got %q", event.TokenUsageID)
+	}
+	if event.InputTokens != 100 || event.CachedInputTokens != 18 || event.OutputTokens != 20 || event.TotalTokens != 138 {
+		t.Fatalf("unexpected token metadata: %#v", event)
+	}
+	assertNoTextLeak(t, events, "PRIVATE CLAUDE ANSWER")
 }
 
 func TestOpenCodeScannerReadsSubmitAndAIDoneWithoutText(t *testing.T) {

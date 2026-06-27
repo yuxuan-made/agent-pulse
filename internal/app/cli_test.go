@@ -34,6 +34,28 @@ func TestScanCommandSummarizesWithoutPromptText(t *testing.T) {
 	}
 }
 
+func TestScanCommandSummarizesTokenUsage(t *testing.T) {
+	root := t.TempDir()
+	codexHome := filepath.Join(root, "codex")
+	writeFile(t, filepath.Join(codexHome, "sessions", "session.jsonl"), `{"timestamp":"2026-06-13T09:00:30Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":1200,"cached_input_tokens":300,"output_tokens":80,"reasoning_output_tokens":20,"total_tokens":1300}}},"session_id":"s","cwd":"/tmp/repo"}`)
+
+	var stdout bytes.Buffer
+	err := app.Run([]string{"scan", "--provider", "codex", "--codex-home", codexHome}, &stdout, &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := stdout.String()
+	for _, want := range []string{
+		"Token records: 1",
+		"Total tokens: 1300",
+		"Cached tokens: 300",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected token summary %q in %q", want, output)
+		}
+	}
+}
+
 func TestExportJSONCommandWritesNoPromptText(t *testing.T) {
 	root := t.TempDir()
 	codexHome := filepath.Join(root, "codex")
@@ -50,6 +72,25 @@ func TestExportJSONCommandWritesNoPromptText(t *testing.T) {
 	}
 	if strings.Contains(output, "PRIVATE EXPORT PROMPT") {
 		t.Fatalf("export leaked prompt text in %q", output)
+	}
+}
+
+func TestExportCSVCommandIncludesTokenMetadata(t *testing.T) {
+	root := t.TempDir()
+	codexHome := filepath.Join(root, "codex")
+	writeFile(t, filepath.Join(codexHome, "sessions", "session.jsonl"), `{"timestamp":"2026-06-13T09:00:30Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":1200,"cached_input_tokens":300,"output_tokens":80,"reasoning_output_tokens":20,"total_tokens":1300}}},"session_id":"s","cwd":"/tmp/repo"}`)
+
+	var stdout bytes.Buffer
+	err := app.Run([]string{"export", "--format", "csv", "--provider", "codex", "--codex-home", codexHome}, &stdout, &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "input_tokens,cached_input_tokens,output_tokens,reasoning_output_tokens,total_tokens") {
+		t.Fatalf("expected token columns in %q", output)
+	}
+	if !strings.Contains(output, "1200,300,80,20,1300") {
+		t.Fatalf("expected token values in %q", output)
 	}
 }
 

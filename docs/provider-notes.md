@@ -1,6 +1,9 @@
 # Provider Notes
 
 Provider adapters are best-effort and should report confidence honestly.
+The built-in discovery path currently targets Codex, Claude Code, and OpenCode
+CLI logs. Other agents can be supported by adding an adapter that emits the
+same canonical `human_submit` and `ai_done` events.
 
 ## Codex
 
