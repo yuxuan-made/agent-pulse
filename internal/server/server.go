@@ -118,16 +118,16 @@ const dashboardHTML = `<!doctype html>
 <style>
 :root {
   color-scheme: light dark;
-  --bg: #f5f3ee;
+  --bg: #f6f7f9;
   --panel: #ffffff;
-  --ink: #1f2933;
-  --muted: #6b7280;
-  --line: #d7d2c8;
-  --human: #176f5d;
-  --ai: #b54708;
-  --codex: #3266cc;
-  --claude-code: #8b5a2b;
-  --opencode: #7c3aed;
+  --ink: #17202a;
+  --muted: #647181;
+  --line: #d9dee7;
+  --soft: #eef2f7;
+  --human: #157a6e;
+  --ai: #c06a1c;
+  --human-soft: rgba(21, 122, 110, .16);
+  --ai-soft: rgba(192, 106, 28, .18);
 }
 * { box-sizing: border-box; }
 body {
@@ -137,7 +137,7 @@ body {
   background: var(--bg);
 }
 main {
-  max-width: 1280px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 22px;
 }
@@ -146,7 +146,7 @@ header {
   align-items: end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 h1 {
   margin: 0;
@@ -154,106 +154,9 @@ h1 {
   line-height: 1.05;
   letter-spacing: 0;
 }
-.subtle { color: var(--muted); font-size: 13px; }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-}
-.metric, .panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  min-width: 0;
-}
-.metric {
-  padding: 12px;
-  min-height: 76px;
-}
-.metric .label {
-  font-size: 12px;
+.subtle {
   color: var(--muted);
-}
-.metric .value {
-  margin-top: 6px;
-  font-size: 25px;
-  line-height: 1.1;
-  font-weight: 720;
-}
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 14px 0;
-}
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 0 14px;
-}
-.segmented, .tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.segmented button, .tabs button {
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--ink);
-  border-radius: 6px;
-  padding: 7px 10px;
-  font: inherit;
   font-size: 13px;
-  cursor: pointer;
-}
-.segmented button.active, .tabs button.active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--panel);
-}
-select {
-  min-width: 150px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--ink);
-  border-radius: 6px;
-  padding: 8px 10px;
-}
-.panel {
-  padding: 14px;
-  margin-bottom: 12px;
-}
-.panel h2 {
-  margin: 0 0 10px;
-  font-size: 15px;
-  line-height: 1.2;
-}
-#ganttChart {
-  width: 100%;
-  min-height: 260px;
-  display: block;
-}
-#bucketChart {
-  width: 100%;
-  height: 230px;
-  display: block;
-}
-.detailHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 14px 0 10px;
-}
-.detailHeader h2 {
-  margin: 0;
-  font-size: 15px;
-}
-.view[hidden] {
-  display: none;
 }
 .legend {
   display: flex;
@@ -271,66 +174,237 @@ select {
 }
 .human { background: var(--human); }
 .ai { background: var(--ai); }
-.two {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.controlPanel, .panel, .metric {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.controlPanel {
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.controlRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  min-width: 0;
+  margin-bottom: 10px;
 }
-#table {
-  max-width: 100%;
-  overflow-x: auto;
+.modeControls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
 }
-table {
-  width: 100%;
-  border-collapse: collapse;
+.modeControls button, .languageControl button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.modeControls button.active, .languageControl button.active {
+  background: var(--ink);
+  color: var(--panel);
+}
+.languageControl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.dateControls, .filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+.filterDrawer {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.filterDrawer summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  list-style-position: inside;
+}
+.filterDrawer[open] summary {
+  margin-bottom: 10px;
+}
+.filterBar {
+  margin-top: 0;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 154px;
+}
+.field[hidden] {
+  display: none;
+}
+input[type="date"], select {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 7px 9px;
+  font: inherit;
   font-size: 13px;
 }
-th, td {
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-  padding: 8px 6px;
+select {
+  min-width: 170px;
+}
+.rangeReadout {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  padding-bottom: 8px;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+.metric {
+  padding: 12px;
+  min-width: 0;
+  min-height: 82px;
+}
+.metric .label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.metric .value {
+  margin-top: 6px;
+  font-size: 25px;
+  line-height: 1.05;
+  font-weight: 720;
+}
+.metric .meta {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-th { color: var(--muted); font-weight: 650; }
-.heatmap {
+.analysisStack {
   display: grid;
-  grid-template-columns: 42px repeat(24, minmax(6px, 1fr));
-  gap: 2px;
-  font-size: 10px;
-  color: var(--muted);
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
 }
-.cell {
-  min-height: 14px;
+.panel {
+  min-width: 0;
+  padding: 14px;
+}
+.panelHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.panel h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.panelSignal {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.legendInline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.legendInline span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legendBar {
+  width: 24px;
+  height: 8px;
   border-radius: 3px;
-  background: #ebe6dc;
+  background: rgba(192, 106, 28, .56);
+}
+.legendNote {
+  flex-basis: 100%;
+}
+#sessionMap, #rhythmChart {
+  width: 100%;
+  display: block;
+}
+#sessionMap {
+  min-height: 340px;
+}
+#rhythmChart {
+  min-height: 230px;
 }
 .empty {
-  padding: 36px 12px;
+  padding: 44px 12px;
   color: var(--muted);
   text-align: center;
 }
-@media (max-width: 820px) {
+@media (max-width: 920px) {
   main { padding: 14px; }
-  header { align-items: start; flex-direction: column; }
-  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .toolbar, .detailHeader { align-items: start; flex-direction: column; }
-  .two { grid-template-columns: 1fr; }
-  th, td { white-space: normal; overflow-wrap: anywhere; }
-  .heatmap { grid-template-columns: 32px repeat(24, minmax(4px, 1fr)); }
+  header, .controlRow {
+    align-items: start;
+    flex-direction: column;
+  }
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+  .modeControls, .dateControls, .filterBar, .field {
+    width: 100%;
+  }
+  .modeControls button {
+    flex: 1 1 auto;
+  }
+  input[type="date"], select {
+    width: 100%;
+  }
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #151719;
-    --panel: #202327;
-    --ink: #edf0f3;
-    --muted: #a3aab4;
-    --line: #383d43;
-    --human: #39b99f;
-    --ai: #f19b4d;
+    --bg: #15181d;
+    --panel: #20242b;
+    --ink: #edf1f6;
+    --muted: #a6b0bd;
+    --line: #3a414c;
+    --soft: #171b21;
+    --human: #44c3b0;
+    --ai: #f0a352;
+    --human-soft: rgba(68, 195, 176, .18);
+    --ai-soft: rgba(240, 163, 82, .18);
   }
-  .cell { background: #2c3035; }
 }
 </style>
 </head>
@@ -339,68 +413,215 @@ th { color: var(--muted); font-weight: 650; }
   <header>
     <div>
       <h1>Agent Pulse</h1>
-      <div class="subtle">Local activity timeline. No message bodies in the default model.</div>
+      <div class="subtle" data-i18n="tagline">Human/agent handoff rhythm. Local metadata only.</div>
     </div>
     <div class="legend">
-      <span><span class="dot human"></span>Human</span>
-      <span><span class="dot ai"></span>AI</span>
+      <span><span class="dot human"></span><span data-i18n="human">Human</span></span>
+      <span><span class="dot ai"></span><span data-i18n="agent">Agent</span></span>
     </div>
   </header>
-  <section class="grid" id="metrics"></section>
-  <section class="filters">
-    <select id="providerFilter"></select>
-    <select id="projectFilter"></select>
-    <select id="threadFilter"></select>
-  </section>
-  <section class="toolbar">
-    <div class="segmented" id="rangeControls" aria-label="Time range">
-      <button type="button" data-range="all" class="active">All</button>
-      <button type="button" data-range="7d">7D</button>
-      <button type="button" data-range="24h">24H</button>
-      <button type="button" data-range="1h">1H</button>
+
+  <section class="controlPanel">
+    <div class="controlRow">
+      <div class="modeControls" id="modeControls" aria-label="Time mode">
+        <button type="button" data-mode="recent" data-i18n="modeRecent" class="active">Last 24h</button>
+        <button type="button" data-mode="day" data-i18n="modeDate">Date</button>
+        <button type="button" data-mode="week" data-i18n="modeWeek">Week</button>
+        <button type="button" data-mode="month" data-i18n="modeMonth">Month</button>
+        <button type="button" data-mode="range" data-i18n="modeRange">Range</button>
+        <button type="button" data-mode="all" data-i18n="modeAll">All</button>
+      </div>
+      <div class="languageControl" aria-label="Language">
+        <span data-i18n="language">Language</span>
+        <button type="button" data-lang="en" class="active">EN</button>
+        <button type="button" data-lang="zh">中文</button>
+      </div>
     </div>
-    <div class="segmented" id="grainControls" aria-label="Time grain">
-      <button type="button" data-grain="week">Week</button>
-      <button type="button" data-grain="day" class="active">Day</button>
-      <button type="button" data-grain="hour">Hour</button>
+    <div class="dateControls">
+      <label class="field" data-field-mode="day">
+        <span data-i18n="date">Date</span>
+        <input type="date" id="selectedDate">
+      </label>
+      <label class="field" data-field-mode="week">
+        <span data-i18n="week">Week</span>
+        <input type="date" id="selectedWeekDate">
+      </label>
+      <label class="field" data-field-mode="month">
+        <span data-i18n="month">Month</span>
+        <input type="month" id="selectedMonth">
+      </label>
+      <label class="field" data-field-mode="range">
+        <span data-i18n="from">From</span>
+        <input type="date" id="rangeStart">
+      </label>
+      <label class="field" data-field-mode="range">
+        <span data-i18n="to">To</span>
+        <input type="date" id="rangeEnd">
+      </label>
+      <div class="rangeReadout" id="rangeReadout"></div>
     </div>
+    <details class="filterDrawer">
+      <summary data-i18n="filters">Filters</summary>
+      <div class="filterBar" aria-label="Filters">
+        <label class="field">
+          <span data-i18n="provider">Provider</span>
+          <select id="providerFilter"></select>
+        </label>
+        <label class="field">
+          <span data-i18n="project">Project</span>
+          <select id="projectFilter"></select>
+        </label>
+        <label class="field">
+          <span data-i18n="thread">Thread</span>
+          <select id="threadFilter"></select>
+        </label>
+      </div>
+    </details>
   </section>
-  <section class="panel">
-    <h2 id="bucketTitle">Activity By Day</h2>
-    <svg id="bucketChart" role="img" aria-label="Activity by selected time grain"></svg>
+
+  <section class="analysisStack">
+    <section class="panel sessionPanel">
+      <div class="panelHeader">
+        <div>
+          <h2 data-i18n="sessionMap">Session map</h2>
+          <div class="panelSignal" id="sessionSignal"></div>
+            <div class="legendInline">
+              <span><i class="legendBar"></i><span data-i18n="agentSpanLegend">Agent wait/work span</span></span>
+              <span class="legendNote" data-i18n="agentSpanNote">From human submit to matched agent completion; a gap, not continuous CPU time.</span>
+          </div>
+        </div>
+      </div>
+      <svg id="sessionMap" role="img" aria-label="Session map"></svg>
+    </section>
+    <section class="panel rhythmPanel">
+      <div class="panelHeader">
+        <div>
+          <h2 data-i18n="dailyRhythm">Daily rhythm</h2>
+          <div class="panelSignal" id="rhythmSignal"></div>
+        </div>
+      </div>
+      <svg id="rhythmChart" role="img" aria-label="Daily rhythm"></svg>
+    </section>
   </section>
-  <section class="detailHeader">
-    <h2>Details</h2>
-    <nav class="tabs" id="viewTabs" aria-label="Detail views">
-      <button type="button" data-view="gantt" class="active">Gantt</button>
-      <button type="button" data-view="projects">Projects</button>
-      <button type="button" data-view="heatmap">Heatmap</button>
-    </nav>
-  </section>
-  <section class="panel view" data-view-panel="gantt">
-    <h2>Daily Gantt</h2>
-    <svg id="ganttChart" role="img" aria-label="Daily Gantt with 6 hour lanes"></svg>
-  </section>
-  <section class="panel view" data-view-panel="projects" hidden>
-    <h2>Projects And Threads</h2>
-    <div id="table"></div>
-  </section>
-  <section class="panel view" data-view-panel="heatmap" hidden>
-    <h2>Weekday Hour</h2>
-    <div id="heatmap" class="heatmap"></div>
-  </section>
+
+  <section class="metrics" id="metrics"></section>
 </main>
 <script>
 const token = "__AGENT_PULSE_TOKEN__";
 const params = token ? "?token=" + encodeURIComponent(token) : "";
-const GANTT_LANES = [
-  {label: "00-06", start: 0, end: 6},
-  {label: "06-12", start: 6, end: 12},
-  {label: "12-18", start: 12, end: 18},
-  {label: "18-24", start: 18, end: 24},
-];
+const DAY = 24 * 60 * 60 * 1000;
+const SESSION_ROW_HEIGHT = 56;
+const SESSION_ROW_BG_FILL = "rgba(100,113,129,.045)";
+const SESSION_AGENT_SPAN_Y = 23;
+const SESSION_AGENT_SPAN_HEIGHT = 18;
+const LANGUAGE_STORAGE_KEY = "agent-pulse-language";
+const I18N = {
+  en: {
+    tagline: "Human/agent handoff rhythm. Local metadata only.",
+    human: "Human",
+    agent: "Agent",
+    language: "Language",
+    modeRecent: "Last 24h",
+    modeDate: "Date",
+    modeWeek: "Week",
+    modeMonth: "Month",
+    modeRange: "Range",
+    modeAll: "All",
+    date: "Date",
+    week: "Week",
+    month: "Month",
+    from: "From",
+    to: "To",
+    filters: "Filters",
+    provider: "Provider",
+    project: "Project",
+    thread: "Thread",
+    sessionMap: "Session map",
+    dailyRhythm: "Daily rhythm",
+    agentSpanLegend: "Agent wait/work span",
+    agentSpanNote: "From human submit to matched agent completion; a gap, not continuous CPU time.",
+    spanTitle: "Agent wait/work span",
+    handovers: "Handovers",
+    medianWait: "Median wait",
+    peakHandoff: "Peak handoff",
+    tokens: "Tokens",
+    coverage: "Coverage",
+    cacheIncluded: "Cache included",
+    usageRecords: "usage records",
+    all: "All",
+    noActivityRange: "No activity in this window",
+    noScannedActivity: "No scanned activity",
+    latestDays: "Latest active days",
+    busiestHour: "Busiest hour",
+    noRhythm: "No hourly rhythm in this window",
+    rangeRecent: "Last 24h",
+    rangeDay: "Date",
+    rangeWeek: "Week",
+    rangeMonth: "Month",
+    rangeRange: "Range",
+    rangeAll: "All scanned activity",
+    displayedDays: "Displayed days",
+  },
+  zh: {
+    tagline: "人和 Agent 的交接节奏。本地元数据，不读正文。",
+    human: "人",
+    agent: "Agent",
+    language: "语言",
+    modeRecent: "最近 24h",
+    modeDate: "单日",
+    modeWeek: "周",
+    modeMonth: "月",
+    modeRange: "范围",
+    modeAll: "全部",
+    date: "日期",
+    week: "所在周",
+    month: "月份",
+    from: "开始",
+    to: "结束",
+    filters: "筛选",
+    provider: "工具",
+    project: "项目",
+    thread: "线程",
+    sessionMap: "交接地图",
+    dailyRhythm: "日内习惯",
+    agentSpanLegend: "Agent 等待/工作区间",
+    agentSpanNote: "从人提交到匹配的 Agent 完成；表示交接等待，不代表一直运行。",
+    spanTitle: "Agent 等待/工作区间",
+    handovers: "交接次数",
+    medianWait: "中位等待",
+    peakHandoff: "高峰小时",
+    tokens: "Token",
+    coverage: "覆盖",
+    cacheIncluded: "含缓存",
+    usageRecords: "条 usage 记录",
+    all: "全部",
+    noActivityRange: "这个窗口没有活动",
+    noScannedActivity: "没有扫描到活动",
+    latestDays: "最近活跃日",
+    busiestHour: "最常用时段",
+    noRhythm: "这个窗口没有日内节奏",
+    rangeRecent: "最近 24h",
+    rangeDay: "单日",
+    rangeWeek: "周",
+    rangeMonth: "月",
+    rangeRange: "范围",
+    rangeAll: "全部已扫描活动",
+    displayedDays: "显示天数",
+  },
+};
 let data = null;
-let filters = {provider: "all", project: "all", thread: "all", range: "all", grain: "day", view: "gantt"};
+let uiLang = preferredLanguage();
+let filters = {
+  provider: "all",
+  project: "all",
+  thread: "all",
+  timeMode: "recent",
+  selectedDate: "",
+  selectedWeekDate: "",
+  selectedMonth: "",
+  rangeStart: "",
+  rangeEnd: "",
+};
 
 fetch("/api/activity" + params).then(r => {
   if (!r.ok) throw new Error("HTTP " + r.status);
@@ -408,48 +629,130 @@ fetch("/api/activity" + params).then(r => {
 }).then(json => {
   data = json;
   initControls();
+  renderLabels();
   render();
 }).catch(err => {
-  document.querySelector("main").innerHTML = '<div class="panel empty">' + err.message + '</div>';
+  document.querySelector("main").innerHTML = '<div class="panel empty">' + escapeHTML(err.message) + '</div>';
 });
 
 function initControls() {
-  fillSelect("providerFilter", ["all", ...unique(data.events.map(e => e.provider))]);
-  fillSelect("projectFilter", ["all", ...unique(data.events.map(e => e.project_id))]);
-  fillSelect("threadFilter", ["all", ...unique(data.events.map(e => e.thread_id))]);
+  syncLanguageButtons();
+  const defaults = dateDefaults(data.events || []);
+  filters.selectedDate = defaults.endDate;
+  filters.selectedWeekDate = defaults.endDate;
+  filters.selectedMonth = defaults.endMonth;
+  filters.rangeStart = defaults.startDate;
+  filters.rangeEnd = defaults.endDate;
+  document.getElementById("selectedDate").value = filters.selectedDate;
+  document.getElementById("selectedWeekDate").value = filters.selectedWeekDate;
+  document.getElementById("selectedMonth").value = filters.selectedMonth;
+  document.getElementById("rangeStart").value = filters.rangeStart;
+  document.getElementById("rangeEnd").value = filters.rangeEnd;
+
+  fillSelect("providerFilter", ["all", ...unique((data.events || []).map(e => e.provider))]);
+  fillSelect("projectFilter", ["all", ...unique((data.events || []).map(e => e.project_id))]);
+  fillSelect("threadFilter", ["all", ...unique((data.events || []).map(e => e.thread_id))]);
+
   for (const id of ["providerFilter", "projectFilter", "threadFilter"]) {
     document.getElementById(id).addEventListener("change", event => {
-      const key = id.replace("Filter", "");
-      filters[key] = event.target.value;
+      filters[id.replace("Filter", "")] = event.target.value;
       render();
     });
   }
-  for (const button of document.querySelectorAll("[data-range]")) {
+  for (const button of document.querySelectorAll("[data-mode]")) {
     button.addEventListener("click", () => {
-      filters.range = button.dataset.range;
-      setActive("[data-range]", button);
+      filters.timeMode = button.dataset.mode;
+      setActive("[data-mode]", button);
+      updateDateFields();
       render();
     });
   }
-  for (const button of document.querySelectorAll("[data-grain]")) {
-    button.addEventListener("click", () => {
-      filters.grain = button.dataset.grain;
-      setActive("[data-grain]", button);
+  document.getElementById("selectedDate").addEventListener("change", event => {
+    filters.selectedDate = event.target.value;
+    activateMode("day");
+    render();
+  });
+  document.getElementById("selectedWeekDate").addEventListener("change", event => {
+    filters.selectedWeekDate = event.target.value;
+    activateMode("week");
+    render();
+  });
+  document.getElementById("selectedMonth").addEventListener("change", event => {
+    filters.selectedMonth = event.target.value;
+    activateMode("month");
+    render();
+  });
+  for (const id of ["rangeStart", "rangeEnd"]) {
+    document.getElementById(id).addEventListener("change", event => {
+      filters[id] = event.target.value;
+      activateMode("range");
       render();
     });
   }
-  for (const button of document.querySelectorAll("[data-view]")) {
+  for (const button of document.querySelectorAll("[data-lang]")) {
     button.addEventListener("click", () => {
-      filters.view = button.dataset.view;
-      setActive("[data-view]", button);
+      uiLang = button.dataset.lang;
+      saveLanguage(uiLang);
+      syncLanguageButtons();
+      renderLabels();
+      refreshFilterLabels();
       render();
     });
+  }
+  updateDateFields();
+}
+
+function preferredLanguage() {
+  try {
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored === "en" || stored === "zh") return stored;
+  } catch (_) {}
+  const browserLanguage = (navigator.language || "").toLowerCase();
+  return browserLanguage.startsWith("zh") ? "zh" : "en";
+}
+
+function saveLanguage(language) {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch (_) {}
+}
+
+function syncLanguageButtons() {
+  const button = document.querySelector('[data-lang="' + uiLang + '"]');
+  if (button) setActive("[data-lang]", button);
+}
+
+function activateMode(mode) {
+  filters.timeMode = mode;
+  const button = document.querySelector('[data-mode="' + mode + '"]');
+  if (button) setActive("[data-mode]", button);
+  updateDateFields();
+}
+
+function updateDateFields() {
+  for (const field of document.querySelectorAll("[data-field-mode]")) {
+    field.hidden = field.dataset.fieldMode !== filters.timeMode;
   }
 }
 
 function fillSelect(id, values) {
   const node = document.getElementById(id);
-  node.innerHTML = values.map(value => '<option value="' + escapeHTML(value) + '">' + escapeHTML(label(value)) + '</option>').join("");
+  node.innerHTML = values.map(value => '<option value="' + escapeHTML(value) + '">' + escapeHTML(filterLabel(value)) + '</option>').join("");
+}
+
+function renderLabels() {
+  for (const node of document.querySelectorAll("[data-i18n]")) {
+    node.textContent = t(node.dataset.i18n);
+  }
+}
+
+function refreshFilterLabels() {
+  for (const id of ["providerFilter", "projectFilter", "threadFilter"]) {
+    const node = document.getElementById(id);
+    for (const option of node.options) {
+      option.textContent = filterLabel(option.value);
+    }
+  }
 }
 
 function setActive(selector, activeButton) {
@@ -460,39 +763,82 @@ function setActive(selector, activeButton) {
 
 function render() {
   const view = filteredData();
+  renderRangeReadout(view);
   renderMetrics(view.events, view.turns, view.spans);
-  renderBucketChart(view.events, filters.grain);
-  renderActiveDetail(view);
+  renderSessionMap(view);
+  renderRhythmChart(view);
 }
 
 function filteredData() {
-  const baseEvents = data.events.filter(e =>
-    (filters.provider === "all" || e.provider === filters.provider) &&
-    (filters.project === "all" || e.project_id === filters.project) &&
-    (filters.thread === "all" || e.thread_id === filters.thread)
-  );
-  const window = timeWindow(baseEvents, filters.range);
+  const eventsSource = data.events || [];
+  const baseEvents = eventsSource.filter(matchesEventFilters);
+  const window = timeWindow(baseEvents);
   const events = baseEvents.filter(e => inWindow(Date.parse(e.timestamp), window));
-  const ids = new Set(events.map(e => e.thread_id));
-  const turns = (data.turns || []).filter(t => ids.has(t.thread_id) && inWindow(Date.parse(t.human_submit_at || t.ai_done_at), window));
-  const spans = (data.spans || []).filter(s => ids.has(s.thread_id) && overlapsWindow(Date.parse(s.started_at), Date.parse(s.ended_at), window));
+  const turns = (data.turns || []).filter(t => matchesTurnFilters(t) && turnInWindow(t, window));
+  const spans = (data.spans || []).filter(s => matchesSpanFilters(s) && overlapsWindow(Date.parse(s.started_at), Date.parse(s.ended_at), window));
   return {events, turns, spans, window};
 }
 
-function timeWindow(events, range) {
-  const times = events.map(e => Date.parse(e.timestamp)).filter(Boolean);
-  if (!times.length) return {start: 0, end: 0};
-  const end = Math.max(...times);
-  const min = Math.min(...times);
-  const duration = rangeDuration(range);
-  return {start: duration ? Math.max(min, end - duration) : min, end};
+function matchesEventFilters(event) {
+  return (filters.provider === "all" || event.provider === filters.provider) &&
+    (filters.project === "all" || event.project_id === filters.project) &&
+    (filters.thread === "all" || event.thread_id === filters.thread);
 }
 
-function rangeDuration(range) {
-  if (range === "7d") return 7 * 24 * 60 * 60 * 1000;
-  if (range === "24h") return 24 * 60 * 60 * 1000;
-  if (range === "1h") return 60 * 60 * 1000;
-  return 0;
+function matchesTurnFilters(turn) {
+  return (filters.provider === "all" || turn.provider === filters.provider) &&
+    (filters.project === "all" || turn.project_id === filters.project) &&
+    (filters.thread === "all" || turn.thread_id === filters.thread);
+}
+
+function matchesSpanFilters(span) {
+  return (filters.provider === "all" || span.provider === filters.provider) &&
+    (filters.project === "all" || span.project_id === filters.project) &&
+    (filters.thread === "all" || span.thread_id === filters.thread);
+}
+
+function timeWindow(events) {
+  const times = events.map(e => Date.parse(e.timestamp)).filter(Boolean);
+  const latest = times.length ? Math.max(...times) : Date.now();
+  const earliest = times.length ? Math.min(...times) : latest;
+  if (filters.timeMode === "all") {
+    return times.length ? {start: earliest, end: latest, labelMode: "all"} : {start: 0, end: 0, labelMode: "all"};
+  }
+  if (filters.timeMode === "day") {
+    const day = parseLocalDate(filters.selectedDate) || startOfLocalDay(new Date(latest));
+    return {start: day.getTime(), end: day.getTime() + DAY - 1, labelMode: "day"};
+  }
+  if (filters.timeMode === "week") {
+    const selected = parseLocalDate(filters.selectedWeekDate) || new Date(latest);
+    const weekStart = startOfLocalWeek(selected);
+    return {start: weekStart.getTime(), end: weekStart.getTime() + 7 * DAY - 1, labelMode: "week"};
+  }
+  if (filters.timeMode === "month") {
+    const selected = parseLocalMonth(filters.selectedMonth) || new Date(latest);
+    const monthStart = new Date(selected.getFullYear(), selected.getMonth(), 1);
+    const nextMonth = new Date(selected.getFullYear(), selected.getMonth() + 1, 1);
+    return {start: monthStart.getTime(), end: nextMonth.getTime() - 1, labelMode: "month"};
+  }
+  if (filters.timeMode === "range") {
+    let start = parseLocalDate(filters.rangeStart) || new Date(latest - 6 * DAY);
+    let end = parseLocalDate(filters.rangeEnd) || new Date(latest);
+    start = startOfLocalDay(start);
+    end = startOfLocalDay(end);
+    if (end < start) {
+      const swap = start;
+      start = end;
+      end = swap;
+    }
+    return {start: start.getTime(), end: end.getTime() + DAY - 1, labelMode: "range"};
+  }
+  return {start: Math.max(earliest, latest - DAY), end: latest, labelMode: "recent"};
+}
+
+function turnInWindow(turn, window) {
+  if (!window.end) return false;
+  const human = Date.parse(turn.human_submit_at);
+  const ai = Date.parse(turn.ai_done_at);
+  return inWindow(human, window) || inWindow(ai, window) || overlapsWindow(human, ai, window);
 }
 
 function inWindow(time, window) {
@@ -505,287 +851,340 @@ function overlapsWindow(start, end, window) {
   return end >= window.start && start <= window.end;
 }
 
-function renderActiveDetail(view) {
-  for (const panel of document.querySelectorAll("[data-view-panel]")) {
-    panel.hidden = panel.dataset.viewPanel !== filters.view;
-  }
-  if (filters.view === "gantt") renderGantt(view.events, view.spans);
-  if (filters.view === "projects") renderTable(view.events, view.spans);
-  if (filters.view === "heatmap") renderHeatmap(view.events);
+function renderRangeReadout(view) {
+  document.getElementById("rangeReadout").textContent = rangeLabel(view.window);
 }
 
 function renderMetrics(events, turns, spans) {
   const human = events.filter(e => e.type === "human_submit").length;
-  const ai = events.filter(e => e.type === "ai_done").length;
-  const projects = unique(events.map(e => e.project_id)).length;
-  const threads = unique(events.map(e => e.thread_id)).length;
-  const durations = spans.map(s => s.duration_ms || 0).filter(Boolean).sort((a,b) => a-b);
+  const aiSpans = spans.filter(s => s.type === "ai_active");
+  const durations = aiSpans.map(s => s.duration_ms || 0).filter(Boolean).sort((a,b) => a-b);
+  const tokenSummary = summarizeTokens(events);
   const metrics = [
-    ["Human submits", human],
-    ["AI completions", ai],
-    ["Median AI", formatMS(percentile(durations, 0.5))],
-    ["P90 AI", formatMS(percentile(durations, 0.9))],
-    ["Projects", projects],
-    ["Threads", threads],
+    {label: t("handovers"), value: human, meta: activeDays(events) + " " + t("displayedDays")},
+    {label: t("medianWait"), value: formatMS(percentile(durations, 0.5)), meta: aiSpans.length + " " + t("agent")},
+    {label: t("peakHandoff"), value: peakHandoffHour(events), meta: t("busiestHour")},
+    {label: t("tokens"), value: formatTokens(tokenSummary.total), meta: t("cacheIncluded") + " " + formatTokens(tokenSummary.cached) + " · " + t("coverage") + " " + tokenSummary.records + " " + t("usageRecords")},
   ];
-  document.getElementById("metrics").innerHTML = metrics.map(([label, value]) =>
-    '<div class="metric"><div class="label">' + label + '</div><div class="value">' + value + '</div></div>'
+  document.getElementById("metrics").innerHTML = metrics.map(metric =>
+    '<div class="metric"><div class="label">' + escapeHTML(metric.label) + '</div><div class="value">' + escapeHTML(metric.value) + '</div><div class="meta">' + escapeHTML(metric.meta) + '</div></div>'
   ).join("");
+  void turns;
 }
 
-function renderBucketChart(events, grain) {
-  const svg = document.getElementById("bucketChart");
-  const title = document.getElementById("bucketTitle");
+function sharedChartBounds(width) {
+  const left = width < 560 ? 58 : 82;
+  const right = 16;
+  return {left, right, chartW: Math.max(160, width - left - right)};
+}
+
+function renderSessionMap(view) {
+  const svg = document.getElementById("sessionMap");
   svg.innerHTML = "";
-  title.textContent = "Activity By " + titleCase(grain);
-  const width = svg.clientWidth || 1000;
-  const height = svg.clientHeight || 230;
-  if (!events.length) {
-    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="currentColor">No activity</text>';
-    return;
-  }
-  const buckets = bucketEvents(events, grain);
-  const max = Math.max(1, ...buckets.map(b => Math.max(b.human, b.ai)));
-  const padLeft = 42;
-  const padRight = 16;
-  const padTop = 18;
-  const padBottom = 34;
-  const innerW = width - padLeft - padRight;
-  const innerH = height - padTop - padBottom;
-  line(svg, padLeft, padTop + innerH, width - padRight, padTop + innerH, "#d7d2c8", 1);
-  const gap = 5;
-  const slot = innerW / buckets.length;
-  const barW = Math.max(3, Math.min(15, (slot - gap) / 2));
-  buckets.forEach((bucket, index) => {
-    const x0 = padLeft + index * slot + Math.max(1, (slot - barW * 2) / 2);
-    const humanH = bucket.human / max * innerH;
-    const aiH = bucket.ai / max * innerH;
-    rect(svg, x0, padTop + innerH - humanH, barW, humanH, "var(--human)");
-    rect(svg, x0 + barW + 2, padTop + innerH - aiH, barW, aiH, "var(--ai)");
-    if (shouldLabelBucket(index, buckets.length)) {
-      labelSVG(svg, x0, height - 12, bucket.label);
-    }
-  });
-  labelSVG(svg, 6, padTop + 10, String(max));
-  labelSVG(svg, 6, padTop + innerH, "0");
-}
-
-function bucketEvents(events, grain) {
-  const buckets = new Map();
-  for (const event of events) {
-    const date = new Date(event.timestamp);
-    const bucket = bucketStart(date, grain);
-    const key = bucket.getTime();
-    if (!buckets.has(key)) buckets.set(key, {time: key, label: bucketLabel(bucket, grain), human: 0, ai: 0});
-    const row = buckets.get(key);
-    if (event.type === "human_submit") row.human++;
-    if (event.type === "ai_done") row.ai++;
-  }
-  return [...buckets.values()].sort((a, b) => a.time - b.time);
-}
-
-function bucketStart(date, grain) {
-  const d = new Date(date);
-  d.setSeconds(0, 0);
-  if (grain === "hour") {
-    d.setMinutes(0);
-    return d;
-  }
-  d.setHours(0, 0, 0, 0);
-  if (grain === "week") {
-    const day = (d.getDay() + 6) % 7;
-    d.setDate(d.getDate() - day);
-  }
-  return d;
-}
-
-function bucketLabel(date, grain) {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  if (grain === "hour") return String(date.getHours()).padStart(2, "0") + ":00";
-  if (grain === "week") return month + "/" + day;
-  return month + "/" + day;
-}
-
-function shouldLabelBucket(index, count) {
-  if (count <= 8) return true;
-  const every = Math.ceil(count / 6);
-  return index % every === 0 || index === count - 1;
-}
-
-function renderGantt(events, spans) {
-  const svg = document.getElementById("ganttChart");
-  svg.innerHTML = "";
-  const width = svg.clientWidth || 1000;
-  const days = activeGanttDays(events, spans);
-  if (!days.length) {
-    svg.setAttribute("height", 260);
-    svg.style.height = "260px";
-    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="currentColor">No activity</text>';
-    return;
-  }
-  const padLeft = width < 520 ? 92 : 118;
-  const padRight = 14;
-  const laneHeight = 22;
-  const dayGap = 14;
-  const top = 18;
-  const bottom = 14;
-  const dayHeight = GANTT_LANES.length * laneHeight + dayGap;
-  const height = top + days.length * dayHeight + bottom;
-  const railStart = padLeft;
-  const railEnd = Math.max(railStart + 80, width - padRight);
+  const width = svg.clientWidth || 860;
+  const rows = sessionRows(view);
+  const rowH = SESSION_ROW_HEIGHT;
+  const top = 40;
+  const bottom = 34;
+  const bounds = sharedChartBounds(width);
+  const {left, chartW} = bounds;
+  const height = Math.max(260, top + rows.keys.length * rowH + bottom);
   svg.setAttribute("height", height);
   svg.style.height = height + "px";
-  for (const [dayIndex, day] of days.entries()) {
-    const dayTop = top + dayIndex * dayHeight;
-    labelSVG(svg, 4, dayTop + 12, formatDay(day));
-    for (const [laneIndex, lane] of GANTT_LANES.entries()) {
-      const y = dayTop + laneIndex * laneHeight + 12;
-      labelSVG(svg, width < 520 ? 48 : 70, y + 4, lane.label);
-      line(svg, railStart, y, railEnd, y, "#d7d2c8", 1);
-    }
+  document.getElementById("sessionSignal").textContent = sessionSignal(rows, view);
+
+  if (!rows.keys.length || (!view.events.length && !view.spans.length)) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="currentColor">' + escapeHTML(t("noActivityRange")) + '</text>';
+    return;
   }
-  for (const span of spans) {
-    drawSpanOnGantt(svg, span, days, railStart, railEnd, top, dayHeight, laneHeight);
+
+  for (const hour of [0, 6, 12, 18, 24]) {
+    const x = left + chartW * hour / 24;
+    line(svg, x, top - 22, x, height - bottom + 2, "var(--line)", hour === 0 || hour === 24 ? 1.2 : .8);
+    labelSVG(svg, x - (hour === 24 ? 26 : 8), top - 26, hourLabel(hour));
   }
-  for (const event of events) {
-    drawEventOnGantt(svg, event, days, railStart, railEnd, top, dayHeight, laneHeight);
+
+  for (let i = 0; i < rows.keys.length; i++) {
+    const key = rows.keys[i];
+    const y = top + i * rowH;
+    labelSVG(svg, 0, y + 29, compactDate(key));
+    rect(svg, left, y + 2, chartW, rowH - 8, SESSION_ROW_BG_FILL, 4);
+  }
+
+  for (const span of view.spans) {
+    drawSpanSegments(svg, span, rows.keys, left, chartW, top, rowH);
   }
 }
 
-function activeGanttDays(events, spans) {
+function drawSpanSegments(svg, span, dayKeys, left, chartW, top, rowH) {
+  let start = Date.parse(span.started_at);
+  let end = Date.parse(span.ended_at);
+  if (!start || !end || end <= start) return;
+  for (let i = 0; i < dayKeys.length; i++) {
+    const dayStart = parseLocalDate(dayKeys[i]).getTime();
+    const dayEnd = dayStart + DAY - 1;
+    const segStart = Math.max(start, dayStart);
+    const segEnd = Math.min(end, dayEnd);
+    if (segEnd <= segStart) continue;
+    const x1 = left + chartW * hourRatio(segStart);
+    const x2 = left + chartW * hourRatio(segEnd);
+    rect(svg, x1, top + i * rowH + SESSION_AGENT_SPAN_Y, Math.max(2, x2 - x1), SESSION_AGENT_SPAN_HEIGHT, "rgba(192,106,28,.54)", 3, t("spanTitle") + " · " + formatClock(segStart) + " - " + formatClock(segEnd));
+  }
+}
+
+function renderRhythmChart(view) {
+  const svg = document.getElementById("rhythmChart");
+  svg.innerHTML = "";
+  const width = svg.clientWidth || 860;
+  const height = 240;
+  svg.setAttribute("height", height);
+  svg.style.height = height + "px";
+  const bounds = sharedChartBounds(width);
+  const {left, chartW} = bounds;
+  const top = 34;
+  const bottom = 38;
+  const chartH = height - top - bottom;
+  const human = Array(24).fill(0);
+  const agent = Array(24).fill(0);
+  for (const event of view.events) {
+    if (event.type !== "human_submit" && event.type !== "ai_done") continue;
+    const hour = new Date(event.timestamp).getHours();
+    if (event.type === "human_submit") human[hour]++;
+    if (event.type === "ai_done") agent[hour]++;
+  }
+  const max = Math.max(1, ...human, ...agent);
+  const peak = peakHourIndex(human);
+  document.getElementById("rhythmSignal").textContent = peak < 0 ? t("noRhythm") : t("busiestHour") + " " + hourLabel(peak);
+
+  for (const hour of [0, 6, 12, 18, 24]) {
+    const x = left + chartW * hour / 24;
+    line(svg, x, top - 18, x, top + chartH, "var(--line)", hour === 0 || hour === 24 ? 1.2 : .8);
+    labelSVG(svg, x - (hour === 24 ? 26 : 8), top - 22, hourLabel(hour));
+  }
+  line(svg, left, top + chartH, left + chartW, top + chartH, "var(--line)", 1);
+  for (let hour = 0; hour < 24; hour++) {
+    const slot = chartW / 24;
+    const x = left + hour * slot;
+    const humanH = chartH * human[hour] / max;
+    const agentH = chartH * agent[hour] / max;
+    if (agentH > 0) {
+      rect(svg, x + slot * .53, top + chartH - agentH, Math.max(2, slot * .28), agentH, "var(--ai-soft)", 2);
+    }
+    if (humanH > 0) {
+      rect(svg, x + slot * .18, top + chartH - humanH, Math.max(2, slot * .42), humanH, "rgba(21,122,110,.76)", 2);
+    }
+  }
+  if (peak >= 0) {
+    const slot = chartW / 24;
+    rect(svg, left + peak * slot, top, slot, chartH, "rgba(21,122,110,.08)", 0);
+  }
+  if (peak < 0) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="currentColor">' + escapeHTML(t("noActivityRange")) + '</text>';
+  }
+}
+
+function sessionRows(view) {
   const keys = new Set();
-  for (const event of events) keys.add(dayKey(new Date(event.timestamp)));
-  for (const span of spans) {
-    const start = startOfDay(new Date(span.started_at));
-    const end = startOfDay(new Date(span.ended_at));
-    for (let day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
-      keys.add(dayKey(day));
+  for (const event of view.events) {
+    if (event.type === "human_submit" || event.type === "ai_done") {
+      keys.add(localDateKey(new Date(event.timestamp)));
     }
   }
-  return [...keys].sort().map(key => new Date(key + "T00:00:00"));
-}
-
-function drawEventOnGantt(svg, event, days, railStart, railEnd, top, dayHeight, laneHeight) {
-  const date = new Date(event.timestamp);
-  const dayIndex = findDayIndex(days, date);
-  if (dayIndex < 0) return;
-  const hour = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
-  const laneIndex = Math.min(3, Math.max(0, Math.floor(hour / 6)));
-  const lane = GANTT_LANES[laneIndex];
-  const y = top + dayIndex * dayHeight + laneIndex * laneHeight + 12;
-  const x = laneX(hour, lane, railStart, railEnd);
-  const stroke = event.type === "human_submit" ? "var(--human)" : "var(--ai)";
-  const h = event.type === "human_submit" ? 7 : 5;
-  line(svg, x, y - h, x, y + h, stroke, event.type === "human_submit" ? 1.8 : 1.3);
-}
-
-function drawSpanOnGantt(svg, span, days, railStart, railEnd, top, dayHeight, laneHeight) {
-  const spanStart = new Date(span.started_at);
-  const spanEnd = new Date(span.ended_at);
-  if (!(spanEnd > spanStart)) return;
-  for (const [dayIndex, day] of days.entries()) {
-    for (const [laneIndex, lane] of GANTT_LANES.entries()) {
-      const segmentStart = addHours(day, lane.start);
-      const segmentEnd = addHours(day, lane.end);
-      const start = new Date(Math.max(spanStart.getTime(), segmentStart.getTime()));
-      const end = new Date(Math.min(spanEnd.getTime(), segmentEnd.getTime()));
-      if (!(end > start)) continue;
-      const startHour = start.getHours() + start.getMinutes() / 60 + start.getSeconds() / 3600;
-      const endHour = end.getHours() + end.getMinutes() / 60 + end.getSeconds() / 3600;
-      const y = top + dayIndex * dayHeight + laneIndex * laneHeight + 9;
-      const x1 = laneX(startHour, lane, railStart, railEnd);
-      const x2 = laneX(endHour, lane, railStart, railEnd);
-      rect(svg, x1, y, Math.max(2, x2 - x1), 6, "rgba(181,71,8,.68)");
+  for (const span of view.spans) {
+    const start = Math.max(Date.parse(span.started_at), view.window.start);
+    const end = Math.min(Date.parse(span.ended_at), view.window.end);
+    if (!start || !end || end < start) continue;
+    for (let day = startOfLocalDay(new Date(start)).getTime(); day <= end; day += DAY) {
+      keys.add(localDateKey(new Date(day)));
+      if (keys.size > 60) break;
     }
   }
+  let sorted = [...keys].sort();
+  const truncated = sorted.length > 14;
+  if (truncated) sorted = sorted.slice(-14);
+  return {keys: sorted, truncated};
 }
 
-function laneX(hour, lane, railStart, railEnd) {
-  const ratio = (hour - lane.start) / (lane.end - lane.start);
-  return railStart + Math.max(0, Math.min(1, ratio)) * (railEnd - railStart);
+function sessionSignal(rows, view) {
+  if (!view.window.end) return t("noScannedActivity");
+  const label = rangeLabel(view.window);
+  if (rows.truncated) return label + " · " + t("latestDays") + " " + rows.keys.length;
+  return label + " · " + t("displayedDays") + " " + rows.keys.length;
 }
 
-function findDayIndex(days, date) {
-  const key = dayKey(date);
-  return days.findIndex(day => dayKey(day) === key);
+function summarizeTokens(events) {
+  const seen = new Set();
+  const summary = {records: 0, input: 0, cached: 0, output: 0, reasoning: 0, total: 0};
+  for (const event of events) {
+    const total = tokenTotal(event);
+    const hasTokens = total || event.input_tokens || event.cached_input_tokens || event.output_tokens || event.reasoning_output_tokens;
+    if (!hasTokens) continue;
+    const key = [
+      event.provider,
+      event.thread_id,
+      event.token_usage_id || event.event_id,
+      event.input_tokens || 0,
+      event.cached_input_tokens || 0,
+      event.output_tokens || 0,
+      event.reasoning_output_tokens || 0,
+      event.total_tokens || 0,
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    summary.records++;
+    summary.input += event.input_tokens || 0;
+    summary.cached += event.cached_input_tokens || 0;
+    summary.output += event.output_tokens || 0;
+    summary.reasoning += event.reasoning_output_tokens || 0;
+    summary.total += total;
+  }
+  return summary;
 }
 
-function dayKey(date) {
-  return String(date.getFullYear()) + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+function tokenTotal(event) {
+  return event.total_tokens || ((event.input_tokens || 0) + (event.cached_input_tokens || 0) + (event.output_tokens || 0) + (event.reasoning_output_tokens || 0));
 }
 
-function startOfDay(date) {
+function peakHandoffHour(events) {
+  const counts = Array(24).fill(0);
+  for (const event of events) {
+    if (event.type === "human_submit") counts[new Date(event.timestamp).getHours()]++;
+  }
+  const peak = peakHourIndex(counts);
+  return peak < 0 ? "n/a" : hourLabel(peak);
+}
+
+function peakHourIndex(counts) {
+  let max = 0;
+  let peak = -1;
+  for (let i = 0; i < counts.length; i++) {
+    if (counts[i] > max) {
+      max = counts[i];
+      peak = i;
+    }
+  }
+  return peak;
+}
+
+function activeDays(events) {
+  const days = new Set();
+  for (const event of events) {
+    if (event.type === "human_submit" || event.type === "ai_done") {
+      days.add(localDateKey(new Date(event.timestamp)));
+    }
+  }
+  return days.size;
+}
+
+function dateDefaults(events) {
+  const times = events.map(e => Date.parse(e.timestamp)).filter(Boolean);
+  const latest = times.length ? Math.max(...times) : Date.now();
+  const end = startOfLocalDay(new Date(latest));
+  const start = new Date(end.getTime() - 6 * DAY);
+  return {startDate: localDateKey(start), endDate: localDateKey(end), endMonth: localMonthKey(end)};
+}
+
+function rangeLabel(window) {
+  if (!window.end) return t("noScannedActivity");
+  if (window.labelMode === "all") return t("rangeAll") + " · " + compactDateTime(window.start) + " - " + compactDateTime(window.end);
+  if (window.labelMode === "day") return t("rangeDay") + " · " + compactDate(window.start);
+  if (window.labelMode === "week") return t("rangeWeek") + " · " + compactDate(window.start) + " - " + compactDate(window.end);
+  if (window.labelMode === "month") return t("rangeMonth") + " · " + compactMonth(window.start);
+  if (window.labelMode === "range") return t("rangeRange") + " · " + compactDate(window.start) + " - " + compactDate(window.end);
+  return t("rangeRecent") + " · " + compactDateTime(window.start) + " - " + compactDateTime(window.end);
+}
+
+function hourRatio(time) {
+  const date = new Date(time);
+  return (date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60) / (24 * 60);
+}
+
+function parseLocalDate(value) {
+  if (!value) return null;
+  const parts = value.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function parseLocalMonth(value) {
+  if (!value) return null;
+  const parts = value.split("-").map(Number);
+  if (parts.length !== 2 || parts.some(Number.isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, 1);
+}
+
+function startOfLocalDay(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-function addHours(date, hours) {
-  const d = new Date(date);
-  d.setHours(hours, 0, 0, 0);
+function startOfLocalWeek(date) {
+  const d = startOfLocalDay(date);
+  const daysSinceMonday = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - daysSinceMonday);
   return d;
 }
 
-function formatDay(date) {
+function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function localMonthKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return year + "-" + month;
+}
+
+function compactDate(value) {
+  const date = typeof value === "string" ? parseLocalDate(value) : new Date(value);
+  if (!date || Number.isNaN(date.getTime())) return "";
   return String(date.getMonth() + 1) + "/" + String(date.getDate());
 }
 
-function renderHeatmap(events) {
-  const counts = Array.from({length: 7}, () => Array(24).fill(0));
-  let max = 0;
-  for (const event of events) {
-    const date = new Date(event.timestamp);
-    const day = (date.getDay() + 6) % 7;
-    const hour = date.getHours();
-    counts[day][hour]++;
-    max = Math.max(max, counts[day][hour]);
-  }
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  let html = '<div></div>' + Array.from({length: 24}, (_, h) => '<div>' + h + '</div>').join("");
-  for (let d = 0; d < 7; d++) {
-    html += '<div>' + days[d] + '</div>';
-    for (let h = 0; h < 24; h++) {
-      const value = counts[d][h];
-      const alpha = max ? 0.12 + value / max * 0.76 : 0;
-      html += '<div class="cell" title="' + days[d] + ' ' + h + ':00 ' + value + '" style="background: rgba(23,111,93,' + alpha + ')"></div>';
-    }
-  }
-  document.getElementById("heatmap").innerHTML = html;
+function compactMonth(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return String(date.getFullYear()) + "/" + String(date.getMonth() + 1).padStart(2, "0");
 }
 
-function renderTable(events, spans) {
-  if (!events.length) {
-    document.getElementById("table").innerHTML = '<div class="empty">No rows</div>';
-    return;
-  }
-  const groups = new Map();
-  for (const event of events) {
-    const key = event.project_id + "|" + event.thread_id;
-    if (!groups.has(key)) groups.set(key, {project: event.project_id, thread: event.thread_id, human: 0, ai: 0, durations: []});
-    const row = groups.get(key);
-    if (event.type === "human_submit") row.human++;
-    if (event.type === "ai_done") row.ai++;
-  }
-  for (const span of spans) {
-    const key = span.project_id + "|" + span.thread_id;
-    if (groups.has(key)) groups.get(key).durations.push(span.duration_ms || 0);
-  }
-  const rows = [...groups.values()].sort((a,b) => b.human - a.human);
-  document.getElementById("table").innerHTML =
-    '<table><thead><tr><th>Project</th><th>Thread</th><th>Human</th><th>AI</th><th>Median</th></tr></thead><tbody>' +
-    rows.map(row => '<tr><td>' + escapeHTML(row.project) + '</td><td>' + escapeHTML(shortID(row.thread)) + '</td><td>' + row.human + '</td><td>' + row.ai + '</td><td>' + formatMS(percentile(row.durations.sort((a,b)=>a-b), .5)) + '</td></tr>').join("") +
-    '</tbody></table>';
+function compactDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return compactDate(value) + " " + hourLabel(date.getHours());
 }
 
-function unique(values) { return [...new Set(values.filter(Boolean))].sort(); }
-function label(value) { return value === "all" ? "All" : value; }
-function titleCase(value) { return value.slice(0, 1).toUpperCase() + value.slice(1); }
-function shortID(value) { return value.length > 28 ? value.slice(0, 25) + "..." : value; }
+function formatClock(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0");
+}
+
+function hourLabel(hour) {
+  const normalized = ((hour % 24) + 24) % 24;
+  return String(normalized).padStart(2, "0") + ":00";
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))].sort();
+}
+
+function t(key) {
+  return (I18N[uiLang] && I18N[uiLang][key]) || I18N.en[key] || key;
+}
+
+function filterLabel(value) {
+  return value === "all" ? t("all") : value;
+}
+
 function percentile(values, p) {
   if (!values.length) return 0;
   return values[Math.floor((values.length - 1) * p)];
 }
+
 function formatMS(ms) {
   if (!ms) return "n/a";
   if (ms < 1000) return ms + "ms";
@@ -795,24 +1194,60 @@ function formatMS(ms) {
   const rest = sec % 60;
   return min + "m " + rest + "s";
 }
+
+function formatTokens(value) {
+  if (!value) return "n/a";
+  const abs = Math.abs(value);
+  if (abs < 1000) return String(value);
+  const units = [
+    {scale: 1000000000000, suffix: "T"},
+    {scale: 1000000000, suffix: "B"},
+    {scale: 1000000, suffix: "M"},
+    {scale: 1000, suffix: "K"},
+  ];
+  for (const unit of units) {
+    if (abs >= unit.scale) return (value / unit.scale).toFixed(2) + unit.suffix;
+  }
+  return String(value);
+}
+
 function escapeHTML(value) {
   return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
+
 function line(svg, x1, y1, x2, y2, stroke, width) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  el.setAttribute("x1", x1); el.setAttribute("y1", y1); el.setAttribute("x2", x2); el.setAttribute("y2", y2);
-  el.setAttribute("stroke", stroke); el.setAttribute("stroke-width", width);
+  el.setAttribute("x1", x1);
+  el.setAttribute("y1", y1);
+  el.setAttribute("x2", x2);
+  el.setAttribute("y2", y2);
+  el.setAttribute("stroke", stroke);
+  el.setAttribute("stroke-width", width);
   svg.appendChild(el);
 }
-function rect(svg, x, y, width, height, fill) {
+
+function rect(svg, x, y, width, height, fill, rx, title) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  el.setAttribute("x", x); el.setAttribute("y", y); el.setAttribute("width", width); el.setAttribute("height", height);
-  el.setAttribute("rx", 3); el.setAttribute("fill", fill);
+  el.setAttribute("x", x);
+  el.setAttribute("y", y);
+  el.setAttribute("width", width);
+  el.setAttribute("height", height);
+  el.setAttribute("rx", rx || 0);
+  el.setAttribute("fill", fill);
+  if (title) {
+    const titleEl = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    titleEl.textContent = title;
+    el.appendChild(titleEl);
+  }
   svg.appendChild(el);
 }
+
 function labelSVG(svg, x, y, text) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  el.setAttribute("x", x); el.setAttribute("y", y); el.setAttribute("fill", "currentColor"); el.setAttribute("font-size", "12");
+  el.setAttribute("x", x);
+  el.setAttribute("y", y);
+  el.setAttribute("fill", "currentColor");
+  el.setAttribute("font-size", "12");
   el.textContent = text;
   svg.appendChild(el);
 }

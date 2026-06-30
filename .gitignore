@@ -1,6 +1,8 @@
 /agent-pulse
+/apulse
 /dist/
 /build/
 /.cache/
+/.superpowers/
 /docs/superpowers/
 *.log

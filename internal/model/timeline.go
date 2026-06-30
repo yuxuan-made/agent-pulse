@@ -15,6 +15,7 @@ type EventType string
 const (
 	EventHumanSubmit EventType = "human_submit"
 	EventAIDone      EventType = "ai_done"
+	EventTokenCount  EventType = "token_count"
 )
 
 type SpanType string
@@ -32,21 +33,27 @@ const (
 )
 
 type Event struct {
-	EventID    string     `json:"event_id"`
-	Type       EventType  `json:"type"`
-	Timestamp  time.Time  `json:"timestamp"`
-	Provider   string     `json:"provider"`
-	Surface    string     `json:"surface,omitempty"`
-	ProjectID  string     `json:"project_id"`
-	ThreadID   string     `json:"thread_id"`
-	TurnID     string     `json:"turn_id,omitempty"`
-	SourceID   string     `json:"source_id,omitempty"`
-	SourcePath string     `json:"source_path,omitempty"`
-	SourceLine int        `json:"source_line,omitempty"`
-	CharCount  int        `json:"char_count,omitempty"`
-	LineCount  int        `json:"line_count,omitempty"`
-	NativeID   string     `json:"native_id,omitempty"`
-	Confidence Confidence `json:"confidence,omitempty"`
+	EventID               string     `json:"event_id"`
+	Type                  EventType  `json:"type"`
+	Timestamp             time.Time  `json:"timestamp"`
+	Provider              string     `json:"provider"`
+	Surface               string     `json:"surface,omitempty"`
+	ProjectID             string     `json:"project_id"`
+	ThreadID              string     `json:"thread_id"`
+	TurnID                string     `json:"turn_id,omitempty"`
+	SourceID              string     `json:"source_id,omitempty"`
+	SourcePath            string     `json:"source_path,omitempty"`
+	SourceLine            int        `json:"source_line,omitempty"`
+	CharCount             int        `json:"char_count,omitempty"`
+	LineCount             int        `json:"line_count,omitempty"`
+	TokenUsageID          string     `json:"token_usage_id,omitempty"`
+	InputTokens           int64      `json:"input_tokens,omitempty"`
+	CachedInputTokens     int64      `json:"cached_input_tokens,omitempty"`
+	OutputTokens          int64      `json:"output_tokens,omitempty"`
+	ReasoningOutputTokens int64      `json:"reasoning_output_tokens,omitempty"`
+	TotalTokens           int64      `json:"total_tokens,omitempty"`
+	NativeID              string     `json:"native_id,omitempty"`
+	Confidence            Confidence `json:"confidence,omitempty"`
 }
 
 type Project struct {
@@ -108,13 +115,23 @@ type Span struct {
 }
 
 type Summary struct {
-	HumanSubmits  int   `json:"human_submits"`
-	AICompletions int   `json:"ai_completions"`
-	ActiveDays    int   `json:"active_days"`
-	Projects      int   `json:"projects"`
-	Threads       int   `json:"threads"`
-	MedianAIMS    int64 `json:"median_ai_ms"`
-	P90AIMS       int64 `json:"p90_ai_ms"`
+	HumanSubmits  int          `json:"human_submits"`
+	AICompletions int          `json:"ai_completions"`
+	ActiveDays    int          `json:"active_days"`
+	Projects      int          `json:"projects"`
+	Threads       int          `json:"threads"`
+	MedianAIMS    int64        `json:"median_ai_ms"`
+	P90AIMS       int64        `json:"p90_ai_ms"`
+	Tokens        TokenSummary `json:"tokens"`
+}
+
+type TokenSummary struct {
+	Records               int   `json:"records"`
+	InputTokens           int64 `json:"input_tokens"`
+	CachedInputTokens     int64 `json:"cached_input_tokens"`
+	OutputTokens          int64 `json:"output_tokens"`
+	ReasoningOutputTokens int64 `json:"reasoning_output_tokens"`
+	TotalTokens           int64 `json:"total_tokens"`
 }
 
 type Warning struct {
@@ -389,6 +406,7 @@ func buildSummary(events []Event, turns []Turn, spans []Span, projects []Project
 	days := map[string]bool{}
 	var durations []int64
 	summary := Summary{Projects: len(projects), Threads: len(threads)}
+	tokenSeen := map[string]bool{}
 	for _, event := range events {
 		if !event.Timestamp.IsZero() {
 			days[event.Timestamp.Format("2006-01-02")] = true
@@ -399,9 +417,37 @@ func buildSummary(events []Event, turns []Turn, spans []Span, projects []Project
 		case EventAIDone:
 			summary.AICompletions++
 		}
+		if hasTokenUsage(event) {
+			key := event.TokenUsageID
+			if key == "" {
+				key = event.EventID
+			}
+			key = strings.Join([]string{
+				event.Provider,
+				event.ThreadID,
+				key,
+				fmt.Sprint(event.InputTokens),
+				fmt.Sprint(event.CachedInputTokens),
+				fmt.Sprint(event.OutputTokens),
+				fmt.Sprint(event.ReasoningOutputTokens),
+				fmt.Sprint(event.TotalTokens),
+			}, "\x00")
+			if tokenSeen[key] {
+				continue
+			}
+			tokenSeen[key] = true
+			summary.Tokens.Records++
+			summary.Tokens.InputTokens += event.InputTokens
+			summary.Tokens.CachedInputTokens += event.CachedInputTokens
+			summary.Tokens.OutputTokens += event.OutputTokens
+			summary.Tokens.ReasoningOutputTokens += event.ReasoningOutputTokens
+			summary.Tokens.TotalTokens += tokenTotal(event)
+		}
 	}
 	for _, span := range spans {
-		durations = append(durations, span.DurationMS)
+		if span.Type == SpanAIActive {
+			durations = append(durations, span.DurationMS)
+		}
 	}
 	sort.Slice(durations, func(i, j int) bool { return durations[i] < durations[j] })
 	summary.ActiveDays = len(days)
@@ -411,6 +457,21 @@ func buildSummary(events []Event, turns []Turn, spans []Span, projects []Project
 	}
 	_ = turns
 	return summary
+}
+
+func hasTokenUsage(event Event) bool {
+	return event.InputTokens != 0 ||
+		event.CachedInputTokens != 0 ||
+		event.OutputTokens != 0 ||
+		event.ReasoningOutputTokens != 0 ||
+		event.TotalTokens != 0
+}
+
+func tokenTotal(event Event) int64 {
+	if event.TotalTokens != 0 {
+		return event.TotalTokens
+	}
+	return event.InputTokens + event.CachedInputTokens + event.OutputTokens + event.ReasoningOutputTokens
 }
 
 func sortedProjects(byID map[string]Project) []Project {

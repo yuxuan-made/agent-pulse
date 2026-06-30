@@ -91,20 +91,27 @@ func eventFromValue(providerName, path string, lineNumber int, raw any, context 
 	if lineCount == 0 && charCount > 0 {
 		lineCount = 1
 	}
+	tokenUsage := tokenUsageFromValue(providerName, eventType, raw, path, lineNumber)
 
 	return model.Event{
-		Type:       eventType,
-		Timestamp:  timestamp,
-		Provider:   providerName,
-		Surface:    "cli",
-		ProjectID:  projectID,
-		ThreadID:   providerName + ":" + threadNativeID,
-		SourcePath: path,
-		SourceLine: lineNumber,
-		CharCount:  charCount,
-		LineCount:  lineCount,
-		NativeID:   threadNativeID,
-		Confidence: confidence,
+		Type:                  eventType,
+		Timestamp:             timestamp,
+		Provider:              providerName,
+		Surface:               "cli",
+		ProjectID:             projectID,
+		ThreadID:              providerName + ":" + threadNativeID,
+		SourcePath:            path,
+		SourceLine:            lineNumber,
+		CharCount:             charCount,
+		LineCount:             lineCount,
+		TokenUsageID:          tokenUsage.id,
+		InputTokens:           tokenUsage.input,
+		CachedInputTokens:     tokenUsage.cached,
+		OutputTokens:          tokenUsage.output,
+		ReasoningOutputTokens: tokenUsage.reasoning,
+		TotalTokens:           tokenUsage.total,
+		NativeID:              threadNativeID,
+		Confidence:            confidence,
 	}, true
 }
 
@@ -126,6 +133,9 @@ func classifyCodex(raw any) (model.EventType, model.Confidence, bool) {
 	payloadType := strings.ToLower(firstStringPath(raw, "payload", "type"))
 	if topType == "event_msg" && payloadType == "user_message" {
 		return model.EventHumanSubmit, model.ConfidenceExact, true
+	}
+	if topType == "event_msg" && payloadType == "token_count" {
+		return model.EventTokenCount, model.ConfidenceExact, true
 	}
 	if topType == "event_msg" && containsAny(payloadType, "task_complete", "turn_complete", "turn-complete", "response_completed", "done") {
 		return model.EventAIDone, model.ConfidenceExact, true
@@ -198,6 +208,64 @@ func textStats(raw any) (int, int) {
 	}
 	walk(raw)
 	return chars, lines
+}
+
+type tokenUsage struct {
+	id        string
+	input     int64
+	cached    int64
+	output    int64
+	reasoning int64
+	total     int64
+}
+
+func tokenUsageFromValue(providerName string, eventType model.EventType, raw any, path string, lineNumber int) tokenUsage {
+	var usageRoot any
+	var usageID string
+	if providerName == ProviderCodex && eventType == model.EventTokenCount {
+		usageRoot = valueAtPath(raw, "payload", "info", "last_token_usage")
+		if usageRoot == nil {
+			usageRoot = valueAtPath(raw, "payload", "info", "total_token_usage")
+		}
+		usageID = firstStringPath(raw, "payload", "id")
+	}
+	if usageRoot == nil && eventType == model.EventAIDone {
+		usageRoot = valueAtPath(raw, "message", "usage")
+		usageID = firstStringPath(raw, "message", "id")
+		if usageRoot == nil {
+			usageRoot = valueAt(raw, "usage")
+		}
+		if usageID == "" {
+			usageID = firstStringShallow(raw, "id")
+		}
+	}
+	if usageRoot == nil {
+		return tokenUsage{}
+	}
+	input := numberField(usageRoot, "input_tokens")
+	cached := numberField(usageRoot, "cached_input_tokens") +
+		numberField(usageRoot, "cache_read_input_tokens") +
+		numberField(usageRoot, "cache_creation_input_tokens")
+	output := numberField(usageRoot, "output_tokens")
+	reasoning := numberField(usageRoot, "reasoning_output_tokens")
+	total := numberField(usageRoot, "total_tokens")
+	if total == 0 {
+		total = input + output + reasoning
+		if providerName != ProviderCodex {
+			total += cached
+		}
+	}
+	if usageID == "" && (input != 0 || cached != 0 || output != 0 || reasoning != 0 || total != 0) {
+		usageID = model.StableID(providerName, path, fmt.Sprint(lineNumber), "token_usage")
+	}
+	return tokenUsage{
+		id:        usageID,
+		input:     input,
+		cached:    cached,
+		output:    output,
+		reasoning: reasoning,
+		total:     total,
+	}
 }
 
 func findTimestamp(raw any) (time.Time, bool) {
@@ -327,6 +395,35 @@ func valueAt(raw any, key string) any {
 		return nil
 	}
 	return m[key]
+}
+
+func valueAtPath(raw any, path ...string) any {
+	current := raw
+	for _, key := range path {
+		m, ok := current.(map[string]any)
+		if !ok {
+			return nil
+		}
+		current = m[key]
+	}
+	return current
+}
+
+func numberField(raw any, key string) int64 {
+	m, ok := raw.(map[string]any)
+	if !ok {
+		return 0
+	}
+	switch value := m[key].(type) {
+	case float64:
+		return int64(value)
+	case int64:
+		return value
+	case int:
+		return int64(value)
+	default:
+		return 0
+	}
 }
 
 func containsAny(value string, needles ...string) bool {

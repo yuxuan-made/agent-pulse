@@ -16,6 +16,7 @@ Default exports and the local dashboard may include:
 - local source path;
 - source line or offset;
 - character and line counts;
+- numeric token usage when provider logs expose it;
 - AI response durations;
 - capability and confidence labels.
 
@@ -24,7 +25,7 @@ before sharing them.
 
 ## Remote Access
 
-`agent-pulse serve` binds to `127.0.0.1` by default.
+`apulse` and `apulse serve` bind to `127.0.0.1` by default.
 
 Binding to a non-loopback host such as `0.0.0.0` requires either:
 
@@ -33,7 +34,13 @@ Binding to a non-loopback host such as `0.0.0.0` requires either:
 
 The unsafe flag is intentionally noisy.
 
+The auth token is a local dashboard access guard. Treat it like any other local
+secret, and prefer a fresh throwaway value for temporary remote or mobile
+testing.
+
 ## Future Options
 
 Any future option that stores richer data should be explicit, opt-in, and named
 plainly, for example `--include-text` or `--include-cost`.
+
+Agent Pulse does not monitor keyboard activity or input boxes by default.
