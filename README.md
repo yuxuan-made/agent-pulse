@@ -28,6 +28,31 @@ updates.
 
 ## Install
 
+Download a release binary. For macOS Apple Silicon:
+
+```sh
+curl -L -o apulse https://github.com/yuxuan-made/agent-pulse/releases/latest/download/apulse_darwin_arm64
+chmod +x apulse
+./apulse
+```
+
+To keep it on your PATH:
+
+```sh
+mkdir -p ~/.local/bin
+mv apulse ~/.local/bin/apulse
+~/.local/bin/apulse
+```
+
+Other release assets:
+
+- macOS Intel: `apulse_darwin_amd64`
+- Linux Intel/AMD: `apulse_linux_amd64`
+- Linux ARM64: `apulse_linux_arm64`
+- Windows Intel/AMD: `apulse_windows_amd64.exe`
+
+Go users can install from source:
+
 ```sh
 go install github.com/yuxuan-made/agent-pulse/cmd/apulse@latest
 ```
@@ -149,3 +174,15 @@ dashboards. It is meant to be the small, private activity layer:
 - Costs, leaderboards, transcript browsing, and full-text search are not the
   product focus. Token metadata is shown only as a lightweight local summary
   when providers expose numeric usage fields.
+
+## Release Process
+
+Maintainers publish binaries by pushing a version tag:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release workflow runs tests, builds `apulse` for macOS, Linux, and Windows,
+uploads stable asset names, and attaches `checksums.txt`.
