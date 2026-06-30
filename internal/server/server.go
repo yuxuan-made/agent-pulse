@@ -519,11 +519,15 @@ select {
 const token = "__AGENT_PULSE_TOKEN__";
 const params = token ? "?token=" + encodeURIComponent(token) : "";
 const DAY = 24 * 60 * 60 * 1000;
-const SESSION_ROW_HEIGHT = 56;
+const SESSION_ROW_HEIGHT = 72;
 const SESSION_ROW_BG_FILL = "rgba(100,113,129,.045)";
-const SESSION_AGENT_SPAN_Y = 23;
-const SESSION_AGENT_SPAN_HEIGHT = 18;
-const SESSION_HUMAN_MARKER_HEIGHT = 8;
+const SESSION_ROW_BG_Y = 4;
+const SESSION_ROW_BG_HEIGHT = 60;
+const SESSION_HUMAN_LANE_Y = 18;
+const SESSION_LANE_DIVIDER_Y = 35;
+const SESSION_AGENT_LANE_Y = 42;
+const SESSION_AGENT_SPAN_HEIGHT = 14;
+const SESSION_HUMAN_MARKER_HEIGHT = 10;
 const SESSION_HUMAN_MARKER_WIDTH = 2;
 const SESSION_HUMAN_MARKER_FILL = "var(--human-marker)";
 const LANGUAGE_STORAGE_KEY = "agent-pulse-language";
@@ -923,8 +927,9 @@ function renderSessionMap(view) {
   for (let i = 0; i < rows.keys.length; i++) {
     const key = rows.keys[i];
     const y = top + i * rowH;
-    labelSVG(svg, 0, y + 29, compactDate(key));
-    rect(svg, left, y + 2, chartW, rowH - 8, SESSION_ROW_BG_FILL, 4);
+    labelSVG(svg, 0, y + 40, compactDate(key));
+    rect(svg, left, y + SESSION_ROW_BG_Y, chartW, SESSION_ROW_BG_HEIGHT, SESSION_ROW_BG_FILL, 4);
+    line(svg, left, y + SESSION_LANE_DIVIDER_Y, left + chartW, y + SESSION_LANE_DIVIDER_Y, "rgba(100,113,129,.10)", 1);
   }
 
   for (const span of view.spans) {
@@ -943,7 +948,7 @@ function drawHumanSubmitMarkers(svg, events, dayKeys, left, chartW, top, rowH) {
     const index = dayIndex.get(localDateKey(date));
     if (index === undefined) continue;
     const x = left + chartW * hourRatio(time);
-    const y = top + index * rowH + SESSION_AGENT_SPAN_Y + 5;
+    const y = top + index * rowH + SESSION_HUMAN_LANE_Y;
     rect(svg, x - SESSION_HUMAN_MARKER_WIDTH / 2, y, SESSION_HUMAN_MARKER_WIDTH, SESSION_HUMAN_MARKER_HEIGHT, SESSION_HUMAN_MARKER_FILL, 2, t("humanSubmitTitle") + " · " + formatClock(time));
   }
 }
@@ -960,7 +965,7 @@ function drawSpanSegments(svg, span, dayKeys, left, chartW, top, rowH) {
     if (segEnd <= segStart) continue;
     const x1 = left + chartW * hourRatio(segStart);
     const x2 = left + chartW * hourRatio(segEnd);
-    rect(svg, x1, top + i * rowH + SESSION_AGENT_SPAN_Y, Math.max(2, x2 - x1), SESSION_AGENT_SPAN_HEIGHT, "rgba(192,106,28,.54)", 3, t("spanTitle") + " · " + formatClock(segStart) + " - " + formatClock(segEnd));
+    rect(svg, x1, top + i * rowH + SESSION_AGENT_LANE_Y, Math.max(2, x2 - x1), SESSION_AGENT_SPAN_HEIGHT, "rgba(192,106,28,.54)", 3, t("spanTitle") + " · " + formatClock(segStart) + " - " + formatClock(segEnd));
   }
 }
 
