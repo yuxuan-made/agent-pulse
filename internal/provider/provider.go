@@ -250,7 +250,10 @@ func tokenUsageFromValue(providerName string, eventType model.EventType, raw any
 	reasoning := numberField(usageRoot, "reasoning_output_tokens")
 	total := numberField(usageRoot, "total_tokens")
 	if total == 0 {
-		total = input + cached + output + reasoning
+		total = input + output + reasoning
+		if providerName != ProviderCodex {
+			total += cached
+		}
 	}
 	if usageID == "" && (input != 0 || cached != 0 || output != 0 || reasoning != 0 || total != 0) {
 		usageID = model.StableID(providerName, path, fmt.Sprint(lineNumber), "token_usage")

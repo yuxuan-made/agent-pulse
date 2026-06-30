@@ -76,6 +76,22 @@ func TestCodexScannerReadsLastTokenUsageMetadata(t *testing.T) {
 	}
 }
 
+func TestCodexScannerDoesNotDoubleCountCachedTokensWhenTotalIsMissing(t *testing.T) {
+	fixture := `{"timestamp":"2026-06-13T09:00:30Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":1200,"cached_input_tokens":300,"output_tokens":80,"reasoning_output_tokens":20}}},"session_id":"codex-session","cwd":"/tmp/repo-a"}`
+
+	events, warnings := provider.ScanReader(provider.ProviderCodex, "codex.jsonl", strings.NewReader(fixture))
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %#v", warnings)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	event := events[0]
+	if event.TotalTokens != 1300 {
+		t.Fatalf("expected total to avoid cache double-counting, got %#v", event)
+	}
+}
+
 func TestClaudeScannerReadsSubmitAndAIDoneWithoutText(t *testing.T) {
 	fixture := strings.Join([]string{
 		`{"timestamp":"2026-06-13T10:00:00Z","type":"user","message":{"role":"user","content":"PRIVATE CLAUDE PROMPT"},"session_id":"claude-session","cwd":"/tmp/repo-b"}`,
