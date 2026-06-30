@@ -9,7 +9,9 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"os/exec"
 	"os/signal"
+	"runtime"
 	"strings"
 	"time"
 
@@ -26,12 +28,16 @@ type Options struct {
 	Since        time.Duration
 	Format       string
 	Out          string
+	OpenBrowser  bool
 }
 
 func Run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		printUsage(stdout)
-		return nil
+		opts, cfg, err := parseServe(nil)
+		if err != nil {
+			return err
+		}
+		return runServe(opts, cfg, stdout, stderr)
 	}
 	switch args[0] {
 	case "scan":
@@ -57,7 +63,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		return runServe(opts, cfg, stdout)
+		return runServe(opts, cfg, stdout, stderr)
 	case "help", "-h", "--help":
 		printUsage(stdout)
 		return nil
@@ -205,11 +211,12 @@ func runExport(opts Options, stdout io.Writer) error {
 	return err
 }
 
-func runServe(opts Options, cfg server.Config, stdout io.Writer) error {
+func runServe(opts Options, cfg server.Config, stdout, stderr io.Writer) error {
 	if err := server.ValidateConfig(cfg); err != nil {
 		return err
 	}
-	timeline, _, _ := LoadTimeline(opts)
+	fmt.Fprintln(stdout, "Scanning local agent logs...")
+	timeline, sources, _ := LoadTimeline(opts)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	url, err := server.ListenAndServe(ctx, timeline, cfg)
@@ -219,9 +226,36 @@ func runServe(opts Options, cfg server.Config, stdout io.Writer) error {
 	if cfg.AuthToken != "" {
 		url = dashboardURLWithToken(url, cfg.AuthToken)
 	}
-	fmt.Fprintf(stdout, "Agent Pulse dashboard: %s\n", url)
+	fmt.Fprint(stdout, dashboardStatus(url, opts, timeline, sources))
+	if opts.OpenBrowser {
+		if err := openBrowser(url); err != nil {
+			fmt.Fprintf(stderr, "warning: could not open browser: %v\n", err)
+		}
+	}
 	<-ctx.Done()
 	return nil
+}
+
+func dashboardStatus(dashboardURL string, opts Options, timeline model.Timeline, sources []provider.Source) string {
+	var out strings.Builder
+	fmt.Fprintln(&out, "Agent Pulse")
+	fmt.Fprintf(&out, "Dashboard: %s\n", dashboardURL)
+	if parsed, err := url.Parse(dashboardURL); err == nil && parsed.Host != "" {
+		fmt.Fprintf(&out, "Listening: %s\n", parsed.Host)
+	}
+	fmt.Fprintf(&out, "Providers: %s\n", providerList(opts.Providers))
+	fmt.Fprintf(&out, "Sources: %d\n", len(sources))
+	fmt.Fprintf(&out, "Events: %d\n", len(timeline.Events))
+	fmt.Fprintln(&out, "Mode: local-only, no prompt text stored")
+	fmt.Fprintln(&out, "Press Ctrl+C to stop.")
+	return out.String()
+}
+
+func providerList(providers []string) string {
+	if len(providers) == 0 {
+		providers = []string{provider.ProviderCodex, provider.ProviderClaudeCode, provider.ProviderOpenCode}
+	}
+	return strings.Join(providers, ", ")
 }
 
 func dashboardURLWithToken(baseURL, token string) string {
@@ -266,7 +300,8 @@ func parseServe(args []string) (Options, server.Config, error) {
 	fs.SetOutput(io.Discard)
 	var providerCSV string
 	var since string
-	opts := Options{}
+	var noOpen bool
+	opts := Options{OpenBrowser: true}
 	cfg := server.Config{Host: "127.0.0.1", Port: 8765}
 	fs.StringVar(&providerCSV, "provider", "", "comma-separated providers: codex,claude-code,opencode")
 	fs.StringVar(&providerCSV, "providers", "", "comma-separated providers: codex,claude-code,opencode")
@@ -278,9 +313,11 @@ func parseServe(args []string) (Options, server.Config, error) {
 	fs.IntVar(&cfg.Port, "port", cfg.Port, "bind port")
 	fs.StringVar(&cfg.AuthToken, "auth-token", "", "required token for remote access")
 	fs.BoolVar(&cfg.UnsafeNoAuth, "unsafe-no-auth", false, "allow remote access without auth")
+	fs.BoolVar(&noOpen, "no-open", false, "do not open the browser automatically")
 	if err := fs.Parse(args); err != nil {
 		return Options{}, server.Config{}, err
 	}
+	opts.OpenBrowser = !noOpen
 	opts.Providers = splitCSV(providerCSV)
 	if since != "" {
 		duration, err := parseDuration(since)
@@ -347,8 +384,30 @@ func printUsage(stdout io.Writer) {
 	fmt.Fprintln(stdout, "Agent Pulse: private activity timelines for AI coding agents")
 	fmt.Fprintln(stdout, "")
 	fmt.Fprintln(stdout, "Usage:")
-	fmt.Fprintln(stdout, "  agent-pulse scan [--provider codex,claude-code,opencode]")
-	fmt.Fprintln(stdout, "  agent-pulse doctor")
-	fmt.Fprintln(stdout, "  agent-pulse export --format json|jsonl|csv")
-	fmt.Fprintln(stdout, "  agent-pulse serve")
+	fmt.Fprintln(stdout, "  apulse")
+	fmt.Fprintln(stdout, "  apulse scan [--provider codex,claude-code,opencode]")
+	fmt.Fprintln(stdout, "  apulse doctor")
+	fmt.Fprintln(stdout, "  apulse export --format json|jsonl|csv")
+	fmt.Fprintln(stdout, "  apulse serve [--no-open]")
+}
+
+var openBrowser = defaultOpenBrowser
+
+func defaultOpenBrowser(target string) error {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", target)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", target)
+	default:
+		cmd = exec.Command("xdg-open", target)
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() {
+		_ = cmd.Wait()
+	}()
+	return nil
 }

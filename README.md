@@ -29,40 +29,52 @@ updates.
 ## Install
 
 ```sh
-go install github.com/yuxuan-made/agent-pulse/cmd/agent-pulse@latest
+go install github.com/yuxuan-made/agent-pulse/cmd/apulse@latest
 ```
 
 For local development:
 
 ```sh
-go run ./cmd/agent-pulse scan
-go run ./cmd/agent-pulse serve
+go run ./cmd/apulse
+go run ./cmd/apulse scan
 ```
 
 ## Commands
 
+Open the local dashboard:
+
 ```sh
-agent-pulse scan
-agent-pulse doctor
-agent-pulse export --format json
-agent-pulse export --format csv
-agent-pulse serve
+apulse
+```
+
+`apulse` starts the local server, prints the dashboard URL and listening port,
+and opens the browser automatically. Use `apulse serve --no-open` for headless
+or SSH sessions.
+
+CLI summaries and exports:
+
+```sh
+apulse scan
+apulse doctor
+apulse export --format json
+apulse export --format csv
+apulse serve
 ```
 
 Provider flags:
 
 ```sh
-agent-pulse scan --provider codex
-agent-pulse scan --provider codex,claude-code,opencode
-agent-pulse scan --codex-home ~/.codex
-agent-pulse scan --claude-home ~/.claude
-agent-pulse scan --opencode-home ~/.local/share/opencode
+apulse scan --provider codex
+apulse scan --provider codex,claude-code,opencode
+apulse scan --codex-home ~/.codex
+apulse scan --claude-home ~/.claude
+apulse scan --opencode-home ~/.local/share/opencode
 ```
 
 Remote or mobile dashboard access is explicit:
 
 ```sh
-agent-pulse serve --host 0.0.0.0 --auth-token local-secret
+apulse serve --host 0.0.0.0 --auth-token local-secret
 ```
 
 Agent Pulse refuses non-loopback binds unless an auth token is supplied, or

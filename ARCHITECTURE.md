@@ -58,10 +58,10 @@ daemon.
 
 Agent Pulse exposes the same model through three local outputs:
 
-- `agent-pulse scan` prints a compact summary, including token totals when
-  provider logs expose numeric usage.
-- `agent-pulse export --format json|jsonl|csv` writes metadata records.
-- `agent-pulse serve` starts a local read-only dashboard, bound to
+- `apulse scan` prints a compact summary, including token totals when provider
+  logs expose numeric usage.
+- `apulse export --format json|jsonl|csv` writes metadata records.
+- `apulse` or `apulse serve` starts a local read-only dashboard, bound to
   `127.0.0.1` by default.
 
 The dashboard is scan-on-start: if new agent work happens while it is open,

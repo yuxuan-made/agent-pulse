@@ -25,7 +25,7 @@ before sharing them.
 
 ## Remote Access
 
-`agent-pulse serve` binds to `127.0.0.1` by default.
+`apulse` and `apulse serve` bind to `127.0.0.1` by default.
 
 Binding to a non-loopback host such as `0.0.0.0` requires either:
 
