@@ -350,6 +350,12 @@ select {
   border-radius: 3px;
   background: rgba(192, 106, 28, .56);
 }
+.legendMarker {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--human);
+}
 .legendNote {
   flex-basis: 100%;
 }
@@ -487,6 +493,7 @@ select {
           <div class="panelSignal" id="sessionSignal"></div>
             <div class="legendInline">
               <span><i class="legendBar"></i><span data-i18n="agentSpanLegend">Agent wait/work span</span></span>
+              <span><i class="legendMarker"></i><span data-i18n="humanSubmitLegend">Human submit marker</span></span>
               <span class="legendNote" data-i18n="agentSpanNote">From human submit to matched agent completion; a gap, not continuous CPU time.</span>
           </div>
         </div>
@@ -514,6 +521,7 @@ const SESSION_ROW_HEIGHT = 56;
 const SESSION_ROW_BG_FILL = "rgba(100,113,129,.045)";
 const SESSION_AGENT_SPAN_Y = 23;
 const SESSION_AGENT_SPAN_HEIGHT = 18;
+const SESSION_HUMAN_MARKER_HEIGHT = 44;
 const LANGUAGE_STORAGE_KEY = "agent-pulse-language";
 const I18N = {
   en: {
@@ -539,8 +547,10 @@ const I18N = {
     sessionMap: "Session map",
     dailyRhythm: "Daily rhythm",
     agentSpanLegend: "Agent wait/work span",
+    humanSubmitLegend: "Human submit marker",
     agentSpanNote: "From human submit to matched agent completion; a gap, not continuous CPU time.",
     spanTitle: "Agent wait/work span",
+    humanSubmitTitle: "Human submit",
     handovers: "Handovers",
     medianWait: "Median wait",
     peakHandoff: "Peak handoff",
@@ -585,8 +595,10 @@ const I18N = {
     sessionMap: "交接地图",
     dailyRhythm: "日内习惯",
     agentSpanLegend: "Agent 等待/工作区间",
+    humanSubmitLegend: "人提交标记",
     agentSpanNote: "从人提交到匹配的 Agent 完成；表示交接等待，不代表一直运行。",
     spanTitle: "Agent 等待/工作区间",
+    humanSubmitTitle: "人提交",
     handovers: "交接次数",
     medianWait: "中位等待",
     peakHandoff: "高峰小时",
@@ -913,6 +925,22 @@ function renderSessionMap(view) {
 
   for (const span of view.spans) {
     drawSpanSegments(svg, span, rows.keys, left, chartW, top, rowH);
+  }
+  drawHumanSubmitMarkers(svg, view.events, rows.keys, left, chartW, top, rowH);
+}
+
+function drawHumanSubmitMarkers(svg, events, dayKeys, left, chartW, top, rowH) {
+  const dayIndex = new Map(dayKeys.map((key, index) => [key, index]));
+  for (const event of events) {
+    if (event.type !== "human_submit") continue;
+    const time = Date.parse(event.timestamp);
+    if (!time) continue;
+    const date = new Date(time);
+    const index = dayIndex.get(localDateKey(date));
+    if (index === undefined) continue;
+    const x = left + chartW * hourRatio(time);
+    const y = top + index * rowH + Math.max(3, (rowH - SESSION_HUMAN_MARKER_HEIGHT) / 2 - 2);
+    rect(svg, x - 1.5, y, 3, SESSION_HUMAN_MARKER_HEIGHT, "var(--human)", 2, t("humanSubmitTitle") + " · " + formatClock(time));
   }
 }
 

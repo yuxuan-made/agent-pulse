@@ -119,12 +119,16 @@ func TestDashboardIncludesAnalysisWorkbenchControls(t *testing.T) {
 		"1000000000000",
 		"All",
 		"Agent wait/work span",
+		"Human submit marker",
 		"Agent 等待/工作区间",
+		"人提交标记",
 		"spanTitle",
+		"humanSubmitTitle",
 		"legendInline",
 		"preferredLanguage",
 		"agent-pulse-language",
 		"renderSessionMap",
+		"drawHumanSubmitMarkers",
 		"renderRhythmChart",
 		"analysisStack",
 		"sessionPanel",
@@ -133,6 +137,7 @@ func TestDashboardIncludesAnalysisWorkbenchControls(t *testing.T) {
 		"const SESSION_ROW_HEIGHT = 56;",
 		"const SESSION_ROW_BG_FILL = \"rgba(100,113,129,.045)\";",
 		"const SESSION_AGENT_SPAN_Y = 23;",
+		"const SESSION_HUMAN_MARKER_HEIGHT = 44;",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("dashboard missing %q in %s", want, body)
