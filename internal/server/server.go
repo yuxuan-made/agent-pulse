@@ -127,7 +127,7 @@ const dashboardHTML = `<!doctype html>
   --human: #157a6e;
   --ai: #c06a1c;
   --human-soft: rgba(21, 122, 110, .16);
-  --human-marker: rgba(21, 122, 110, .62);
+  --human-marker: rgba(21, 122, 110, .52);
   --ai-soft: rgba(192, 106, 28, .18);
 }
 * { box-sizing: border-box; }
@@ -352,8 +352,8 @@ select {
   background: rgba(192, 106, 28, .56);
 }
 .legendMarker {
-  width: 3px;
-  height: 14px;
+  width: 8px;
+  height: 3px;
   border-radius: 2px;
   background: var(--human-marker);
 }
@@ -410,7 +410,7 @@ select {
     --human: #44c3b0;
     --ai: #f0a352;
     --human-soft: rgba(68, 195, 176, .18);
-    --human-marker: rgba(68, 195, 176, .68);
+    --human-marker: rgba(68, 195, 176, .58);
     --ai-soft: rgba(240, 163, 82, .18);
   }
 }
@@ -495,7 +495,7 @@ select {
           <div class="panelSignal" id="sessionSignal"></div>
             <div class="legendInline">
               <span><i class="legendBar"></i><span data-i18n="agentSpanLegend">Agent wait/work span</span></span>
-              <span><i class="legendMarker"></i><span data-i18n="humanSubmitLegend">Human submit marker</span></span>
+              <span><i class="legendMarker"></i><span data-i18n="humanSubmitLegend">Submit</span></span>
               <span class="legendNote" data-i18n="agentSpanNote">From human submit to matched agent completion; a gap, not continuous CPU time.</span>
           </div>
         </div>
@@ -523,7 +523,7 @@ const SESSION_ROW_HEIGHT = 56;
 const SESSION_ROW_BG_FILL = "rgba(100,113,129,.045)";
 const SESSION_AGENT_SPAN_Y = 23;
 const SESSION_AGENT_SPAN_HEIGHT = 18;
-const SESSION_HUMAN_MARKER_HEIGHT = 22;
+const SESSION_HUMAN_MARKER_HEIGHT = 8;
 const SESSION_HUMAN_MARKER_WIDTH = 2;
 const SESSION_HUMAN_MARKER_FILL = "var(--human-marker)";
 const LANGUAGE_STORAGE_KEY = "agent-pulse-language";
@@ -551,7 +551,7 @@ const I18N = {
     sessionMap: "Session map",
     dailyRhythm: "Daily rhythm",
     agentSpanLegend: "Agent wait/work span",
-    humanSubmitLegend: "Human submit marker",
+    humanSubmitLegend: "Submit",
     agentSpanNote: "From human submit to matched agent completion; a gap, not continuous CPU time.",
     spanTitle: "Agent wait/work span",
     humanSubmitTitle: "Human submit",
@@ -599,7 +599,7 @@ const I18N = {
     sessionMap: "交接地图",
     dailyRhythm: "日内习惯",
     agentSpanLegend: "Agent 等待/工作区间",
-    humanSubmitLegend: "人提交标记",
+    humanSubmitLegend: "提交",
     agentSpanNote: "从人提交到匹配的 Agent 完成；表示交接等待，不代表一直运行。",
     spanTitle: "Agent 等待/工作区间",
     humanSubmitTitle: "人提交",
@@ -943,7 +943,7 @@ function drawHumanSubmitMarkers(svg, events, dayKeys, left, chartW, top, rowH) {
     const index = dayIndex.get(localDateKey(date));
     if (index === undefined) continue;
     const x = left + chartW * hourRatio(time);
-    const y = top + index * rowH + SESSION_AGENT_SPAN_Y - 2;
+    const y = top + index * rowH + SESSION_AGENT_SPAN_Y + 5;
     rect(svg, x - SESSION_HUMAN_MARKER_WIDTH / 2, y, SESSION_HUMAN_MARKER_WIDTH, SESSION_HUMAN_MARKER_HEIGHT, SESSION_HUMAN_MARKER_FILL, 2, t("humanSubmitTitle") + " · " + formatClock(time));
   }
 }
