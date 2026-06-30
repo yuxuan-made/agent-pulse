@@ -127,6 +127,7 @@ const dashboardHTML = `<!doctype html>
   --human: #157a6e;
   --ai: #c06a1c;
   --human-soft: rgba(21, 122, 110, .16);
+  --human-marker: rgba(21, 122, 110, .62);
   --ai-soft: rgba(192, 106, 28, .18);
 }
 * { box-sizing: border-box; }
@@ -351,10 +352,10 @@ select {
   background: rgba(192, 106, 28, .56);
 }
 .legendMarker {
-  width: 4px;
-  height: 18px;
+  width: 3px;
+  height: 14px;
   border-radius: 2px;
-  background: var(--human);
+  background: var(--human-marker);
 }
 .legendNote {
   flex-basis: 100%;
@@ -409,6 +410,7 @@ select {
     --human: #44c3b0;
     --ai: #f0a352;
     --human-soft: rgba(68, 195, 176, .18);
+    --human-marker: rgba(68, 195, 176, .68);
     --ai-soft: rgba(240, 163, 82, .18);
   }
 }
@@ -521,7 +523,9 @@ const SESSION_ROW_HEIGHT = 56;
 const SESSION_ROW_BG_FILL = "rgba(100,113,129,.045)";
 const SESSION_AGENT_SPAN_Y = 23;
 const SESSION_AGENT_SPAN_HEIGHT = 18;
-const SESSION_HUMAN_MARKER_HEIGHT = 44;
+const SESSION_HUMAN_MARKER_HEIGHT = 22;
+const SESSION_HUMAN_MARKER_WIDTH = 2;
+const SESSION_HUMAN_MARKER_FILL = "var(--human-marker)";
 const LANGUAGE_STORAGE_KEY = "agent-pulse-language";
 const I18N = {
   en: {
@@ -939,8 +943,8 @@ function drawHumanSubmitMarkers(svg, events, dayKeys, left, chartW, top, rowH) {
     const index = dayIndex.get(localDateKey(date));
     if (index === undefined) continue;
     const x = left + chartW * hourRatio(time);
-    const y = top + index * rowH + Math.max(3, (rowH - SESSION_HUMAN_MARKER_HEIGHT) / 2 - 2);
-    rect(svg, x - 1.5, y, 3, SESSION_HUMAN_MARKER_HEIGHT, "var(--human)", 2, t("humanSubmitTitle") + " · " + formatClock(time));
+    const y = top + index * rowH + SESSION_AGENT_SPAN_Y - 2;
+    rect(svg, x - SESSION_HUMAN_MARKER_WIDTH / 2, y, SESSION_HUMAN_MARKER_WIDTH, SESSION_HUMAN_MARKER_HEIGHT, SESSION_HUMAN_MARKER_FILL, 2, t("humanSubmitTitle") + " · " + formatClock(time));
   }
 }
 

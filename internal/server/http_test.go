@@ -137,7 +137,9 @@ func TestDashboardIncludesAnalysisWorkbenchControls(t *testing.T) {
 		"const SESSION_ROW_HEIGHT = 56;",
 		"const SESSION_ROW_BG_FILL = \"rgba(100,113,129,.045)\";",
 		"const SESSION_AGENT_SPAN_Y = 23;",
-		"const SESSION_HUMAN_MARKER_HEIGHT = 44;",
+		"const SESSION_HUMAN_MARKER_HEIGHT = 22;",
+		"const SESSION_HUMAN_MARKER_WIDTH = 2;",
+		"const SESSION_HUMAN_MARKER_FILL = \"var(--human-marker)\";",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("dashboard missing %q in %s", want, body)
