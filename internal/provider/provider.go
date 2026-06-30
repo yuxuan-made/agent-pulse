@@ -39,7 +39,7 @@ func ScanReader(providerName, path string, r io.Reader) ([]model.Event, []model.
 			warnings = append(warnings, model.Warning{Provider: providerName, Path: path, Message: fmt.Sprintf("line %d: invalid JSON: %v", lineNumber, err)})
 			continue
 		}
-		context.update(raw)
+		context.update(providerName, raw)
 		event, ok := eventFromValue(providerName, path, lineNumber, raw, context)
 		if ok {
 			events = append(events, event)
@@ -56,11 +56,11 @@ type scanContext struct {
 	threadNativeID string
 }
 
-func (c *scanContext) update(raw any) {
+func (c *scanContext) update(providerName string, raw any) {
 	if projectHint := firstString(raw, "cwd", "project", "workspace", "repo", "repository"); projectHint != "" {
 		c.projectHint = projectHint
 	}
-	if threadNativeID := firstString(raw, "session_id", "sessionID", "sessionId", "conversation_id", "conversationId", "thread_id", "threadId", "run_id", "id"); threadNativeID != "" {
+	if threadNativeID := threadNativeIDFromValue(providerName, raw); threadNativeID != "" {
 		c.threadNativeID = threadNativeID
 	}
 }
@@ -79,7 +79,7 @@ func eventFromValue(providerName, path string, lineNumber int, raw any, context 
 		projectHint = context.projectHint
 	}
 	projectID := model.ProjectIDFromHint(projectHint)
-	threadNativeID := firstString(raw, "session_id", "sessionID", "sessionId", "conversation_id", "conversationId", "thread_id", "threadId", "run_id", "id")
+	threadNativeID := threadNativeIDFromValue(providerName, raw)
 	if threadNativeID == "" {
 		threadNativeID = context.threadNativeID
 	}
@@ -113,6 +113,33 @@ func eventFromValue(providerName, path string, lineNumber int, raw any, context 
 		NativeID:              threadNativeID,
 		Confidence:            confidence,
 	}, true
+}
+
+func threadNativeIDFromValue(providerName string, raw any) string {
+	if providerName == ProviderCodex {
+		for _, path := range [][]string{
+			{"payload", "session_id"},
+			{"payload", "sessionID"},
+			{"payload", "sessionId"},
+			{"payload", "conversation_id"},
+			{"payload", "conversationId"},
+			{"payload", "thread_id"},
+			{"payload", "threadId"},
+			{"payload", "run_id"},
+			{"payload", "runId"},
+		} {
+			if value := firstStringPath(raw, path...); value != "" {
+				return value
+			}
+		}
+		for _, key := range []string{"session_id", "sessionID", "sessionId", "conversation_id", "conversationId", "thread_id", "threadId", "run_id", "runId"} {
+			if value := firstStringShallow(raw, key); value != "" {
+				return value
+			}
+		}
+		return ""
+	}
+	return firstString(raw, "session_id", "sessionID", "sessionId", "conversation_id", "conversationId", "thread_id", "threadId", "run_id", "runId", "id")
 }
 
 func classifyEvent(providerName string, raw any) (model.EventType, model.Confidence, bool) {

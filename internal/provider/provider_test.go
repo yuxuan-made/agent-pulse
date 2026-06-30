@@ -57,6 +57,31 @@ func TestCodexScannerUsesTurnContextProjectForFollowingEvents(t *testing.T) {
 	}
 }
 
+func TestCodexScannerKeepsSessionThreadAfterTokenMessageID(t *testing.T) {
+	fixture := strings.Join([]string{
+		`{"timestamp":"2026-06-13T09:00:00Z","type":"event_msg","payload":{"type":"user_message","message":"PRIVATE","session_id":"codex-session"},"cwd":"/tmp/repo-a"}`,
+		`{"timestamp":"2026-06-13T09:00:12Z","type":"event_msg","payload":{"type":"token_count","id":"msg-token","info":{"last_token_usage":{"input_tokens":100,"cached_input_tokens":30,"output_tokens":10}}},"cwd":"/tmp/repo-a"}`,
+		`{"timestamp":"2026-06-13T09:00:20Z","type":"event_msg","payload":{"type":"task_complete"},"cwd":"/tmp/repo-a"}`,
+	}, "\n")
+
+	events, warnings := provider.ScanReader(provider.ProviderCodex, "codex.jsonl", strings.NewReader(fixture))
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %#v", warnings)
+	}
+	if len(events) != 3 {
+		t.Fatalf("expected 3 events, got %d: %#v", len(events), events)
+	}
+	for _, event := range events {
+		if event.ThreadID != "codex:codex-session" {
+			t.Fatalf("expected session thread id, got %#v", events)
+		}
+	}
+	timeline := model.BuildTimeline(events)
+	if len(timeline.Spans) != 1 {
+		t.Fatalf("expected human and ai_done to pair into a span, got turns=%#v spans=%#v", timeline.Turns, timeline.Spans)
+	}
+}
+
 func TestCodexScannerReadsLastTokenUsageMetadata(t *testing.T) {
 	fixture := `{"timestamp":"2026-06-13T09:00:30Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":9999,"output_tokens":9999,"total_tokens":19998},"last_token_usage":{"input_tokens":1200,"cached_input_tokens":300,"output_tokens":80,"reasoning_output_tokens":20,"total_tokens":1300}}},"session_id":"codex-session","cwd":"/tmp/repo-a"}`
 
